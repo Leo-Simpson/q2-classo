@@ -1,1 +1,1 @@
-# q2_classo
+# q2-classo
