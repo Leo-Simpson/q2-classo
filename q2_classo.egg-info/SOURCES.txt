@@ -1,0 +1,13 @@
+README.md
+setup.py
+q2_classo/__init__.py
+q2_classo/_visualizer.py
+q2_classo/citations.bib
+q2_classo/function.py
+q2_classo/plugin_setup.py
+q2_classo.egg-info/PKG-INFO
+q2_classo.egg-info/SOURCES.txt
+q2_classo.egg-info/dependency_links.txt
+q2_classo.egg-info/entry_points.txt
+q2_classo.egg-info/not-zip-safe
+q2_classo.egg-info/top_level.txt

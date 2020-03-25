@@ -8,23 +8,22 @@
 # ----------------------------------------------------------------------------
 
 from setuptools import setup, find_packages
-import versioneer
+#import versioneer
 
 setup(
       name="q2-classo",
-      version=versioneer.get_version(),
-      cmdclass=versioneer.get_cmdclass(),
+      version='0.0.0.dev0',
+      #cmdclass=versioneer.get_cmdclass(),
       packages=find_packages(),
-      author="Matthew Ryan Dillon",
-      author_email="matthewrdillon@gmail.com",
+      author="",
+      author_email="",
       url="https://qiime2.org",
       license="BSD-3-Clause",
-      description="Taxonomic analysis and visualization.",
+      description="Package for constrained sparse regression and classification",
       entry_points={
       "qiime2.plugins":
-      ["q2-taxa=q2_taxa.plugin_setup:plugin"]
+      ["q2-classo=q2_classo.plugin_setup:plugin"]
       },
-      package_data={'q2_taxa': ['assets/barplot/index.html',
-                                'assets/barplot/dist/*']},
+      package_data={'q2_classo': ['citations.bib']},
       zip_safe=False,
       )
