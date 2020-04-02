@@ -1,8 +1,9 @@
 from qiime2.plugin import (Plugin, Int, Float, Range, Metadata, Str, Bool,
      Choices, MetadataColumn, Categorical, List,
-     Citations, TypeMatch, Numeric)
-from q2_types.feature_table import FeatureTable, Composition
-from q2_types.feature_data import FeatureData
+     Citations, TypeMatch)
+
+
+from q2_classo import *
 
 from functions import regress
 from dictionaries import regress_parameters, regress_parameter_descriptions, regress_output, regress_output_descriptions

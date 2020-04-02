@@ -1,9 +1,11 @@
 README.md
 setup.py
 q2_classo/__init__.py
+q2_classo/_types.py
 q2_classo/_visualizer.py
 q2_classo/citations.bib
-q2_classo/function.py
+q2_classo/dictionaries.py
+q2_classo/functions.py
 q2_classo/plugin_setup.py
 q2_classo.egg-info/PKG-INFO
 q2_classo.egg-info/SOURCES.txt
@@ -11,3 +13,14 @@ q2_classo.egg-info/dependency_links.txt
 q2_classo.egg-info/entry_points.txt
 q2_classo.egg-info/not-zip-safe
 q2_classo.egg-info/top_level.txt
+q2_classo/CLasso/__init__.py
+q2_classo/CLasso/compact_func.py
+q2_classo/CLasso/cross_validation.py
+q2_classo/CLasso/misc_functions.py
+q2_classo/CLasso/path_alg.py
+q2_classo/CLasso/solve_R1.py
+q2_classo/CLasso/solve_R2.py
+q2_classo/CLasso/solve_R3.py
+q2_classo/CLasso/solve_R4.py
+q2_classo/CLasso/solver.py
+q2_classo/CLasso/stability_selection.py
