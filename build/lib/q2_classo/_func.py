@@ -25,10 +25,7 @@ Path_type = SemanticType('Path_type', field_names=['betas','sigmas','lambdas', '
                           'time'   : Time_type
                        })
 
-Test_type = SemanticType('Test_type', variant_of=FeatureData.field['type'])
-
-# plugin.register_semantic_types(Test_type)
-# plugin.register_semantic_type_to_format(FeatureData[Test_type],artifact_format=BIOMV210DirFmt)
+Path = Path_type[Beta_type,Sigma_type,Lambda_type, Method_type, Formulation_type, Time_type]
 
 
 def regress(X : FeatureTable[Composition],

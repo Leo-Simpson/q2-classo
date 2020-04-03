@@ -1,11 +1,11 @@
 import numpy as np
 import numpy.linalg as LA
 
-from CLasso.solve_R1 import problem_R1, Classo_R1, pathlasso_R1
-from CLasso.solve_R2 import problem_R2, Classo_R2, pathlasso_R2
-from CLasso.solve_R3 import problem_R3, Classo_R3, pathlasso_R3
-from CLasso.solve_R4 import problem_R4, Classo_R4, pathlasso_R4
-from CLasso.path_alg import solve_path, pathalgo_general, h_lambdamax
+from .solve_R1 import problem_R1, Classo_R1, pathlasso_R1
+from .solve_R2 import problem_R2, Classo_R2, pathlasso_R2
+from .solve_R3 import problem_R3, Classo_R3, pathlasso_R3
+from .solve_R4 import problem_R4, Classo_R4, pathlasso_R4
+from .path_alg import solve_path, pathalgo_general, h_lambdamax
 
 '''
 Classo and pathlasso are the main functions, they can call every algorithm acording to the method and formulation required
@@ -58,7 +58,9 @@ def Classo(matrix,lam,typ = 'R1', meth='DR', rho = 1.345, get_lambdamax = False,
     else              : return(beta)
 
 
-def pathlasso(matrix,lambdas=False,n_active=False,lamin=1e-2,typ='LS',meth='Path-Alg',rho = 1.345, true_lam = False, e= 1.,return_sigm= False,rho_classification=-1):
+def pathlasso(matrix,lambdas=False,n_active=0,lamin=1e-2,typ='LS',meth='Path-Alg',rho = 1.345, true_lam = False, e= 1.,return_sigm= False,rho_classification=-1):
+    Nactive = n_active
+    if(Nactive==0):Nactive=False
     if (type(lambdas)!= bool):
         if (lambdas[0]<lambdas[-1]): lambdas = [lambdas[i] for i in range(len(lambdas)-1,-1,-1)]  # reverse the list if needed
     else: lambdas = np.linspace(1.,lamin,100)
@@ -67,13 +69,13 @@ def pathlasso(matrix,lambdas=False,n_active=False,lamin=1e-2,typ='LS',meth='Path
         pb = problem_R2(matrix,meth,rho)
         lambdamax = pb.lambdamax
         #if (true_lam): lambdas=[lamb/lambdamax for lamb in lambdas]
-        BETA  = pathlasso_R2(pb,lambdas,n_active=n_active)
+        BETA  = pathlasso_R2(pb,lambdas,n_active=Nactive)
 
     elif(typ=='R3'):
         pb = problem_R3(matrix,meth,e=e)
         lambdamax = pb.lambdamax
         #if (true_lam): lambdas=[lamb/lambdamax for lamb in lambdas]
-        BETA,S = pathlasso_R3(pb,lambdas,n_active=n_active)
+        BETA,S = pathlasso_R3(pb,lambdas,n_active=Nactive)
         S=np.array(S)/np.sqrt(e)
 
     elif(typ=='R4'):
@@ -81,17 +83,17 @@ def pathlasso(matrix,lambdas=False,n_active=False,lamin=1e-2,typ='LS',meth='Path
         pb = problem_R4(matrix,meth,rho)
         lambdamax = pb.lambdamax
         #if (true_lam): lambdas=[lamb/lambdamax for lamb in lambdas]
-        BETA,S = pathlasso_R4(pb,lambdas,n_active=n_active)
+        BETA,S = pathlasso_R4(pb,lambdas,n_active=Nactive)
         
     elif(typ == 'C2'):
         lambdamax = h_lambdamax(matrix[0],matrix[2],rho)
         #if (true_lam): lambdas=[lamb/lambdamax for lamb in lambdas]
-        BETA = pathalgo_general(matrix, lambdas, 'huber_cl', n_active=n_active, rho=rho_classification)
+        BETA = pathalgo_general(matrix, lambdas, 'huber_cl', n_active=Nactive, rho=rho_classification)
 
     elif (typ == 'C1'):
         lambdamax = 2*LA.norm((matrix[0].T).dot(matrix[2]),np.infty)
         #if (true_lam): lambdas = [lamb / lambdamax for lamb in lambdas]
-        BETA = pathalgo_general(matrix, lambdas, 'cl', n_active=n_active)
+        BETA = pathalgo_general(matrix, lambdas, 'cl', n_active=Nactive)
 
     else:
         pb = problem_R1(matrix,meth)

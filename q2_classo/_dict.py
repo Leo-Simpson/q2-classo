@@ -3,7 +3,6 @@ from qiime2.plugin import (SemanticType,Plugin, Int, Float, Range, Metadata, Str
      Citations, TypeMatch, Numeric)
 from q2_types.feature_table import FeatureTable, Composition
 from q2_types.feature_data import FeatureData
-from functions import Test_type
 
 
 regress_parameters={
@@ -96,37 +95,6 @@ regress_parameter_descriptions={
     'LAMfixed_lam'              : 'lam for which the lasso should be computed. Default value : ‘theoretical’ which mean it will be equal to theoretical_lam once it is computed', # can be str as well for now !
     'LAMfixed_true_lam'         : 'True if the lambda given is the real lambda, False if it lambda/lambdamax which is between 0 and 1. If True and lam = ‘theoretical’ , then it will takes the value n*theoretical_lam. Default value : True'
 }
-regress_output_descriptions = {
-    # Output about PATH computation
-    'PATH_betas'       : ('array of size Npath x d with the solution beta for each lambda on each row'),
-    'PATH_sigmas'      : ('array of size Npath with the solution sigma for each lambda when the formulation of the problem is R2 or R4'),
-    'PATH_lambdas'     : ('array of size Npath with the lambdas (real lambdas, not divided by lambda_max) for which the solution is computed'),
-    'PATH_method'      : ("name of the numerical method that has been used. It can be 'Path-Alg', 'P-PDS' , 'PF-PDS' or 'DR'"),
-    'PATH_formulation' : ("can be 'R1' ; 'R2' ; 'R3' ; 'R4' ; 'C1' ; 'C2'"),
-    'PATH_time'        : ('running time of this action')
 
-    # Output about CV computation
-                    
-    # Output about StabSel computation
-                    
-    # Output about LAMfixed computation
-}
-regress_output =   [
-                    # Output about PATH computation
-                    ('PATH_betas',FeatureData[Test_type]),
-                    ('PATH_sigmas',FeatureData[Test_type]),
-                    ('PATH_lambdas',FeatureData[Test_type]),
-                    ('PATH_method',Str),
-                    ('PATH_formulation',Str),
-                    ('PATH_time',Float)
-                    
-                    # Output about CV computation
-                    
-                    # Output about StabSel computation
-                    
-                    # Output about LAMfixed computation
-                    
-                    
-                    ]
 
 

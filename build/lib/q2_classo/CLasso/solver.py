@@ -2,10 +2,10 @@ from time import time
 import numpy as np
 import matplotlib.pyplot as plt
 
-from CLasso.misc_functions import rescale, theoretical_lam, min_LS, affichage
-from CLasso.compact_func import Classo, pathlasso
-from CLasso.cross_validation import CV
-from CLasso.stability_selection import stability, selected_param
+from .misc_functions import rescale, theoretical_lam, min_LS, affichage
+from .compact_func import Classo, pathlasso
+from .cross_validation import CV
+from .stability_selection import stability, selected_param
 import matplotlib.patches as mpatches
 
 
@@ -139,8 +139,8 @@ class PATHparameters:
             'Path-Alg' (path algorithm) , 'P-PDS' (Projected primal-dual splitting method) , 'PF-PDS' (Projection-free primal-dual splitting method) or 'DR' (Douglas-Rachford-type splitting method)
             Default value : 'choose', which means that the function :func:`choose_numerical_method` will choose it accordingly to the formulation
 
-        n_active (int or bool): if it is an integer, then the algo stop computing the path when n_active variables are actives. then the solution does not change from this point.
-            Dafault value : False
+        n_active (int): if it is higher than 0, then the algo stop computing the path when n_active variables are actives. then the solution does not change from this point.
+            Dafault value : 0
 
         lambdas (numpy.ndarray) : list of lambdas for computinf lasso-path for cross validation on lambda.
             Default value : np.array([10**(-delta * float(i) / nlam) for i in range(0,nlam) ] ) with delta=2. and nlam = 40
@@ -551,7 +551,7 @@ class solution_CV:
         for j in range(len(self.xGraph)):
             if (self.yGraph[j] < mse_max): break
 
-        plt.errorbar(self.xGraph[j:], self.yGraph[j:], self.standard_error[j:], label='mean over the k groups of data')
+        plt.errorbar(self.xGraph[j:], self.yGraph[j:], self.standard_error[j:], label='mean over the k groups of data', errorevery = 10 )
         plt.axvline(x=self.xGraph[i_min], color='k', label=r'$\lambda$ (min MSE)')
         plt.axvline(x=self.xGraph[i_1SE],color='r',label=r'$\lambda$ (1SE) ')
         plt.title(CV_graph["title"]), plt.xlabel(CV_graph["xlabel"]),plt.ylabel(CV_graph["ylabel"])
