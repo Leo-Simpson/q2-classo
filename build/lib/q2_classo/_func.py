@@ -81,32 +81,48 @@ def regress(X : FeatureTable[Composition],
     problem.formulation.concomitant = concomitant
     problem.formulation.rho         = rho
 
-    #PATH
     if PATH:
-        problem.model_selection.PATH                            = PATH
-        problem.model_selection.PATHparameters.numerical_method = PATH_numerical_method
-        problem.model_selection.PATHparameters.n_active         = PATH_n_active
+        problem.model_selection.PATH= PATH
+        param = problem.model_selection.PATHparameters
+        param.numerical_method = PATH_numerical_method
+        param.n_active         = PATH_n_active
         if PATH_lambdas is None: 
-            nlam, lamin = PATH_nlam_log, PATH_lamin_log
-            log_lambdas =  np.array([10**(np.log10(lamin) * float(i) / nlam) for i in range(0,nlam) ] )
-            problem.model_selection.PATHparameters.lambdas = log_lambdas
-        else : problem.model_selection.PATHparameters.lambdas          =  PATH_lambdas
+            param.lambdas = np.array([10**(np.log10(PATH_lamin_log) * float(i) / PATH_nlam_log) for i in range(0,PATH_nlam_log) ] )
+        else : param.lambdas=  PATH_lambdas
 
     if CV :
         problem.moodel.selection.LAMfixed = LAMfixed
-        if CV_lambdas is None: problem.moodel.selection.CVparameters.lambdas   =  np.linspace(1., 1e-3, 500)
-        else                 :  problem.model_selection.CVparameters.lambdas   =  CV_lambdas
+        param = problem.moodel.selection.CVparameters
+        param.numerical_method = CV_numerical_method
+        param.seed = CV_numerical_methodCV_seed    
+        param.oneSE = CV_numerical_methodCV_oneSE   
+        param.Nsubsets = CV_numerical_methodCV_subsets  
+        if CV_lambdas is None: param.lambdas =  np.linspace(1., 1e-3, 500)
+        else                 : param.lambdas =  CV_lambdas
 
     if StabSel : 
         problem.moodel.selection.StabSel = StabSel
-        if (StabSel_lam>0.): problem.moodel.selection.StabSelparameters.lam = StabSel_lam
-        else               : problem.moodel.selection.StabSelparameters.lam = 'theoretical'
+        param = problem.moodel.selection.StabSelparameters
+        param.numerical_method = StabSel_numerical_method
+        param.seed = StabSel_seed
+        param.true_lam = StabSel_true_lam
+        param.method = StabSel_method 
+        param.B = StabSel_B
+        param.q = StabSel_q
+        param.percent_nS = StabSel_percent_nS
+        param.lamin = StabSel_lamin
+        param.threshold = StabSel_threshold
+        param.threshold_label = StabSel_threshold_label
+        if (StabSel_lam>0.): param.lam = StabSel_lam
+        else               : param.lam = 'theoretical'
 
     if LAMfixed: 
         problem.moodel.selection.LAMfixed = LAMfixed
-        if (LAMfixed_lam>0.): problem.moodel.selection.LAMfixedparameters.lam = LAMfixed_lam
-        else                : problem.moodel.selection.LAMfixedparameters.lam = 'theoretical'
-
+        param = problem.moodel.selection.LAMfixedparameters
+        param.numerical_method = LAMfixed_numerical_method
+        param.true_lam = LAMfixed_true_lam
+        if (LAMfixed_lam>0.): param.lam = LAMfixed_lam
+        else                : param.lam = 'theoretical'
 
     problem.solve()
     solution_PATH, solution_CV, solution_StabSel, solution_LAM = problem.solution.PATH, problem.solution.CV, problem.solution.StabSel, problem.solution.LAMfixed
