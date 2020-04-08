@@ -66,6 +66,7 @@ class parameters_for_update:
 def solve_path(matrices, lamin, n_active, rho,typ):
     param = parameters_for_update(matrices, lamin, rho,typ)
     BETA, LAM = [param.beta], [param.lam]
+    if param.lam < lamin : return BETA,LAM
     for i in range(N):
         up(param)
         BETA.append(param.beta), LAM.append(param.lam)
@@ -86,7 +87,6 @@ def solve_path_Conc(matrices, stop, n_active=False, lassopath=True):
 
     param = parameters_for_update(matrices, lamin, 0, "Conc")
     BETA, LAM = [param.beta], [param.lam]
-
     for i in range(N):
 
         up(param)
