@@ -1,8 +1,9 @@
 from qiime2.plugin import (Plugin, Int, Float, Range, Metadata, Str, Bool,
      Choices, MetadataColumn, Categorical, List,
-     Citations, TypeMatch, Numeric)
+     Citations, TypeMatch, Numeric, SemanticType)
 from q2_types.feature_table import FeatureTable, Composition
 from q2_types.feature_data import FeatureData
+
 
 from . import  *
 
@@ -23,7 +24,7 @@ plugin.methods.register_function(
            function=regress,
            inputs={'X': FeatureTable[Composition]},
            parameters=regress_parameters,
-           outputs= [('classo_problem',CLASSOProblemDirectoryFormat)],
+           outputs= [('classo_problem',CLASSOProblem)],
            input_descriptions={'X': 'Matrix representing the data of the problem'},
            parameter_descriptions=regress_parameter_descriptions,
            output_descriptions= {
@@ -34,6 +35,16 @@ plugin.methods.register_function(
            #citations=[citations['Weiss2017']]
            )
 
+
+
+CLASSOProblem = SemanticType("CLASSOProblem")
+
+ConstraintMatrix = SemanticType("ConstraintMatrix")
+
+plugin.register_semantic_types(CLASSOProblem)
+
+plugin.register_semantic_type_to_format(CLASSOProblem, 
+                                        artifact_format=CLASSOProblemDirectoryFormat)
 
 
 @plugin.register_transformer
