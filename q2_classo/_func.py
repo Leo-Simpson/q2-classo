@@ -105,6 +105,9 @@ def regress(X : FeatureTable[Composition],
         else                : param.lam = 'theoretical'
 
     problem.solve()
+
+    return problem
+    
     solution_PATH, solution_CV, solution_StabSel, solution_LAM = problem.solution.PATH, problem.solution.CV, problem.solution.StabSel, problem.solution.LAMfixed
 
     output = dict()

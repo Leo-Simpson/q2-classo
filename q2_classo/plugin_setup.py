@@ -23,11 +23,11 @@ plugin.methods.register_function(
            function=regress,
            inputs={'X': FeatureTable[Composition]},
            parameters=regress_parameters,
-           outputs= [('PATH',Path)],
+           outputs= [('classo_problem',CLASSOProblemDirectoryFormat)],
            input_descriptions={'X': 'Matrix representing the data of the problem'},
            parameter_descriptions=regress_parameter_descriptions,
            output_descriptions= {
-               'PATH':"Type that contains the componants of the solution related to the computation of the path, which are : 'betas,'sigmas','lambdas','method','formulation' and 'time' "
+               'classo_problem':"Directory format that will contain all information about the problem solved"
                },
            name='regress',
            description=("The function computes the constrainted_sparse_regression vector with respect to the formulationof regression that is asked and with respect to the model selection parameters given")
@@ -35,3 +35,12 @@ plugin.methods.register_function(
            )
 
 
+
+@plugin.register_transformer
+def _0(obj: classo_problem) -> CLASSOProblemDirectoryFormat:
+    return classo_to_dir(obj)
+
+
+@plugin.register_transformer
+def _1(obj: CLASSOProblemDirectoryFormat) -> classo_problem:
+    return dir_to_classo(obj)
