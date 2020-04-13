@@ -35,8 +35,8 @@ def classo_to_dir(problem):
                                                             ('selected_parameters',solStabSel_classo.selected_param)])
 
     solLAMfixed_classo, solLAMfixed_dir= problem.solution.LAMfixed , result.LAMfixed
-    if type(solCV_classo) != str : solCV_dir.add([('beta',solCV_classo.beta),
-                                                  ('sigma',solPATH_classo.sigma)])
+    if type(solLAMfixed_classo) != str : solLAMfixed_dir.add([('beta',solLAMfixed_classo.beta),
+                                                  ('sigma',solLAMfixed_classo.sigma)])
 
     
 

@@ -25,9 +25,4 @@ class CLASSOProblemDirectoryFormat(model.DirectoryFormat):
     StabSel     = model.File('classo.StabSel'    , format=SolutionFormat)
     LAMfixed    = model.File('classo.LAMfixed'   , format=SolutionFormat)
 
-
-
-    parameters = model.File('parameters'    , format= ParametersFormat)
-    solution  = model.File('solution'     , format= SolutionFormat)
-
     

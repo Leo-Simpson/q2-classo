@@ -39,8 +39,3 @@ plugin.methods.register_function(
 @plugin.register_transformer
 def _0(obj: classo_problem) -> CLASSOProblemDirectoryFormat:
     return classo_to_dir(obj)
-
-
-@plugin.register_transformer
-def _1(obj: CLASSOProblemDirectoryFormat) -> classo_problem:
-    return dir_to_classo(obj)
