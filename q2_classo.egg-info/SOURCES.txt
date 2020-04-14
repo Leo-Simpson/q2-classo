@@ -2,8 +2,8 @@ README.md
 setup.py
 q2_classo/__init__.py
 q2_classo/_dict.py
+q2_classo/_formats.py
 q2_classo/_func.py
-q2_classo/_types.py
 q2_classo/_visualizer.py
 q2_classo/citations.bib
 q2_classo/plugin_setup.py

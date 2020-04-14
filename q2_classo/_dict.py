@@ -6,7 +6,7 @@ from q2_types.feature_data import FeatureData
 
 
 regress_parameters={
-     'y': MetadataColumn[Numeric],
+    'y': MetadataColumn[Numeric],
     #Formulation parameters
     'concomitant': Bool,
     'huber'      : Bool,
@@ -15,41 +15,41 @@ regress_parameters={
 
 
     #PATH parameters :
-    'PATH' : Bool,
-    'PATH_numerical_method' : Str,
-    'PATH_n_active'         : Int, # do something here ! for now it can be a bool !
-    'PATH_lambdas'          : List[Float],
-    'PATH_nlam_log'         : Int,
-    'PATH_lamin_log'        : Float,
+    'path' : Bool,
+    'path_numerical_method' : Str,
+    'path_n_active'         : Int, # do something here ! for now it can be a bool !
+    'path_lambdas'          : List[Float],
+    'path_nlam_log'         : Int,
+    'path_lamin_log'        : Float,
 
 
     #CV parameters :
-    'CV' : Bool,
-    'CV_numerical_method' : Str,
-    'CV_seed'             : Int, # do something here ! for now it can be a bool !
-    'CV_lambdas'          : List[Float],
-    'CV_oneSE'            : Bool,
-    'CV_subsets'          : Int,
+    'cv' : Bool,
+    'cv_numerical_method' : Str,
+    'cv_seed'             : Int, # do something here ! for now it can be a bool !
+    'cv_lambdas'          : List[Float],
+    'cv_one_se'            : Bool,
+    'cv_subsets'          : Int,
 
     #StabSel parameters :
-    'StabSel' : Bool,
-    'StabSel_numerical_method' : Str,
-    'StabSel_seed'             : Int, # do something here ! for now it can be a bool !
-    'StabSel_lam'              : Float, # can be str as well for now !
-    'StabSel_true_lam'         : Bool,
-    'StabSel_method'           : Str,
-    'StabSel_B'                : Int,
-    'StabSel_q'                : Int,
-    'StabSel_percent_nS'       : Float,
-    'StabSel_lamin'            : Float,
-    'StabSel_threshold'        : Float,
-    'StabSel_threshold_label'  : Float, # might unneeded here, but needed for visualisation
+    'stabsel' : Bool,
+    'stabsel_numerical_method' : Str,
+    'stabsel_seed'             : Int, # do something here ! for now it can be a bool !
+    'stabsel_lam'              : Float, # can be str as well for now !
+    'stabsel_true_lam'         : Bool,
+    'stabsel_method'           : Str,
+    'stabsel_b'                : Int,
+    'stabsel_q'                : Int,
+    'stabsel_percent_ns'       : Float,
+    'stabsel_lamin'            : Float,
+    'stabsel_threshold'        : Float,
+    'stabsel_threshold_label'  : Float, # might unneeded here, but needed for visualisation
 
     #LAMfixed parameters :
-    'LAMfixed' : Bool,
-    'LAMfixed_numerical_method' : Str,
-    'LAMfixed_lam'              : Float, # can be str as well for now !
-    'LAMfixed_true_lam'         : Bool
+    'lamfixed' : Bool,
+    'lamfixed_numerical_method' : Str,
+    'lamfixed_lam'              : Float, # can be str as well for now !
+    'lamfixed_true_lam'         : Bool
 }
 regress_parameter_descriptions={
     'y': 'Vector representing the output of the problem',
@@ -61,39 +61,39 @@ regress_parameter_descriptions={
 
 
     #PATH parameters :
-    'PATH' : 'True if path should be computed. Default Value = False',
-    'PATH_numerical_method' : 'name of the numerical method that is used, it can be : ‘Path-Alg’ (path algorithm) , ‘P-PDS’ (Projected primal-dual splitting method) , ‘PF-PDS’ (Projection-free primal-dual splitting method) or ‘DR’ (Douglas-Rachford-type splitting method) Default value : ‘choose’, which means that the function choose_numerical_method() will choose it accordingly to the formulation',
-    'PATH_n_active'         : 'if it is an integer, then the algo stop computing the path when n_active variables are actives. then the solution does not change from this point. Dafault value : False',
-    'PATH_lambdas'          : 'list of lambdas for computinf lasso-path for cross validation on lambda. Default value : np.array([10**(-delta * float(i) / nlam) for i in range(0,nlam) ] ) with delta=2. and nlam = 40',
-    'PATH_nlam_log'         : ' number of lambdas required, if the list of lambdas is not specified, in order to use a log-ratio list of lambdas',
-    'PATH_lamin_log'        : 'minimum of lambdas required, if the list of lambdas is not specified, in order to use a log-ratio list of lambdas',
+    'path' : 'True if path should be computed. Default Value = False',
+    'path_numerical_method' : 'name of the numerical method that is used, it can be : ‘Path-Alg’ (path algorithm) , ‘P-PDS’ (Projected primal-dual splitting method) , ‘PF-PDS’ (Projection-free primal-dual splitting method) or ‘DR’ (Douglas-Rachford-type splitting method) Default value : ‘choose’, which means that the function choose_numerical_method() will choose it accordingly to the formulation',
+    'path_n_active'         : 'if it is an integer, then the algo stop computing the path when n_active variables are actives. then the solution does not change from this point. Dafault value : False',
+    'path_lambdas'          : 'list of lambdas for computinf lasso-path for cross validation on lambda. Default value : np.array([10**(-delta * float(i) / nlam) for i in range(0,nlam) ] ) with delta=2. and nlam = 40',
+    'path_nlam_log'         : ' number of lambdas required, if the list of lambdas is not specified, in order to use a log-ratio list of lambdas',
+    'path_lamin_log'        : 'minimum of lambdas required, if the list of lambdas is not specified, in order to use a log-ratio list of lambdas',
 
     #CV parameters :
-    'CV' : 'True if Cross Validation should be computed. Default Value = False',
-    'CV_numerical_method' : 'name of the numerical method that is used, it can be : ‘Path-Alg’ (path algorithm) , ‘P-PDS’ (Projected primal-dual splitting method) , ‘PF-PDS’ (Projection-free primal-dual splitting method) or ‘DR’ (Douglas-Rachford-type splitting method) Default value : ‘choose’, which means that the function choose_numerical_method() will choose it accordingly to the formulation',
-    'CV_seed'             : 'Seed for random values, for an equal seed, the result will be the same. If set to False/None: pseudo-random vectors Default value : None',
-    'CV_lambdas'          : 'list of lambdas for computinf lasso-path for cross validation on lambda. Default value : np.linspace(1., 1e-3, 500)',
-    'CV_oneSE'            : 'if set to True, the selected lambda if computed with method ‘one-standard-error’ Default value : True',
-    'CV_subsets'          : 'number of subset in the cross validation method Dafault value : 5',
+    'cv' : 'True if Cross Validation should be computed. Default Value = False',
+    'cv_numerical_method' : 'name of the numerical method that is used, it can be : ‘Path-Alg’ (path algorithm) , ‘P-PDS’ (Projected primal-dual splitting method) , ‘PF-PDS’ (Projection-free primal-dual splitting method) or ‘DR’ (Douglas-Rachford-type splitting method) Default value : ‘choose’, which means that the function choose_numerical_method() will choose it accordingly to the formulation',
+    'cv_seed'             : 'Seed for random values, for an equal seed, the result will be the same. If set to False/None: pseudo-random vectors Default value : None',
+    'cv_lambdas'          : 'list of lambdas for computinf lasso-path for cross validation on lambda. Default value : np.linspace(1., 1e-3, 500)',
+    'cv_one_se'            : 'if set to True, the selected lambda if computed with method ‘one-standard-error’ Default value : True',
+    'cv_subsets'          : 'number of subset in the cross validation method Dafault value : 5',
     #StabSel parameters :
-    'StabSel' : 'True if Stability Selection should be computed. Default Value = True',
-    'StabSel_numerical_method' : 'name of the numerical method that is used, it can be : ‘Path-Alg’ (path algorithm) , ‘P-PDS’ (Projected primal-dual splitting method) , ‘PF-PDS’ (Projection-free primal-dual splitting method) or ‘DR’ (Douglas-Rachford-type splitting method) Default value : ‘choose’, which means that the function choose_numerical_method() will choose it accordingly to the formulation',
-    'StabSel_seed'             : 'Seed for random values, for an equal seed, the result will be the same. If set to False/None: pseudo-random vectors Default value : None',
-    'StabSel_lam'              : '(only used if method = ‘lam’) lam for which the lasso should be computed. Default value : ‘theoretical’ which mean it will be equal to theoretical_lam once it is computed',
-    'StabSel_true_lam'         : '(only used if method = ‘lam’) True if the lambda given is the real lambda, False if it lambda/lambdamax which is between 0 and 1. If True and lam = ‘theoretical’ , then it will takes the value n*theoretical_lam. Default value : True',
-    'StabSel_method'           : '‘first’, ‘lam’ or ‘max’ depending on the type of stability selection we do. Default value : ‘first’',
-    'StabSel_B'                : 'number of subsample considered. Default value : 50',
-    'StabSel_q'                : 'number of selected variable per subsample. Default value : 10',
-    'StabSel_percent_nS'       : 'size of subsample relatively to the total amount of sample Default value : 0.5',
-    'StabSel_lamin'            : 'lamin when computing the lasso-path for method ‘max’ Default value : 1e-2',
-    'StabSel_threshold'        : 'threhold for stability selection Default value : 0.7',
-    'StabSel_threshold_label'  : 'threshold to know when the label should be plot on the graph. Default value : 0.4', # might unneeded here, but needed for visualisation
+    'stabsel' : 'True if Stability Selection should be computed. Default Value = True',
+    'stabsel_numerical_method' : 'name of the numerical method that is used, it can be : ‘Path-Alg’ (path algorithm) , ‘P-PDS’ (Projected primal-dual splitting method) , ‘PF-PDS’ (Projection-free primal-dual splitting method) or ‘DR’ (Douglas-Rachford-type splitting method) Default value : ‘choose’, which means that the function choose_numerical_method() will choose it accordingly to the formulation',
+    'stabsel_seed'             : 'Seed for random values, for an equal seed, the result will be the same. If set to False/None: pseudo-random vectors Default value : None',
+    'stabsel_lam'              : '(only used if method = ‘lam’) lam for which the lasso should be computed. Default value : ‘theoretical’ which mean it will be equal to theoretical_lam once it is computed',
+    'stabsel_true_lam'         : '(only used if method = ‘lam’) True if the lambda given is the real lambda, False if it lambda/lambdamax which is between 0 and 1. If True and lam = ‘theoretical’ , then it will takes the value n*theoretical_lam. Default value : True',
+    'stabsel_method'           : '‘first’, ‘lam’ or ‘max’ depending on the type of stability selection we do. Default value : ‘first’',
+    'stabsel_b'                : 'number of subsample considered. Default value : 50',
+    'stabsel_q'                : 'number of selected variable per subsample. Default value : 10',
+    'stabsel_percent_ns'       : 'size of subsample relatively to the total amount of sample Default value : 0.5',
+    'stabsel_lamin'            : 'lamin when computing the lasso-path for method ‘max’ Default value : 1e-2',
+    'stabsel_threshold'        : 'threhold for stability selection Default value : 0.7',
+    'stabsel_threshold_label'  : 'threshold to know when the label should be plot on the graph. Default value : 0.4', # might unneeded here, but needed for visualisation
 
     #LAMfixed parameters :
-    'LAMfixed' : 'True if solution for a fixed lambda should be computed. Default Value = False',
-    'LAMfixed_numerical_method' : 'name of the numerical method that is used, it can be : ‘Path-Alg’ (path algorithm) , ‘P-PDS’ (Projected primal-dual splitting method) , ‘PF-PDS’ (Projection-free primal-dual splitting method) or ‘DR’ (Douglas-Rachford-type splitting method) Default value : ‘choose’, which means that the function choose_numerical_method() will choose it accordingly to the formulation',
-    'LAMfixed_lam'              : 'lam for which the lasso should be computed. Default value : ‘theoretical’ which mean it will be equal to theoretical_lam once it is computed', # can be str as well for now !
-    'LAMfixed_true_lam'         : 'True if the lambda given is the real lambda, False if it lambda/lambdamax which is between 0 and 1. If True and lam = ‘theoretical’ , then it will takes the value n*theoretical_lam. Default value : True'
+    'lamfixed' : 'True if solution for a fixed lambda should be computed. Default Value = False',
+    'lamfixed_numerical_method' : 'name of the numerical method that is used, it can be : ‘Path-Alg’ (path algorithm) , ‘P-PDS’ (Projected primal-dual splitting method) , ‘PF-PDS’ (Projection-free primal-dual splitting method) or ‘DR’ (Douglas-Rachford-type splitting method) Default value : ‘choose’, which means that the function choose_numerical_method() will choose it accordingly to the formulation',
+    'lamfixed_lam'              : 'lam for which the lasso should be computed. Default value : ‘theoretical’ which mean it will be equal to theoretical_lam once it is computed', # can be str as well for now !
+    'lamfixed_true_lam'         : 'True if the lambda given is the real lambda, False if it lambda/lambdamax which is between 0 and 1. If True and lam = ‘theoretical’ , then it will takes the value n*theoretical_lam. Default value : True'
 }
 
 

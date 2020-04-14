@@ -1,12 +1,10 @@
 from qiime2.plugin import (Plugin, Int, Float, Range, Metadata, Str, Bool,
      Choices, MetadataColumn, Categorical, List,
-     Citations, TypeMatch, Numeric)
-from q2_types.feature_table import FeatureTable, Composition
-from q2_types.feature_data import FeatureData
-
+     Citations, TypeMatch, Numeric, SemanticType)
+from q2_types.feature_table import FeatureTable, Composition, BIOMV210DirFmt, BIOMV210Format
 from . import  *
-
-
+import numpy as np
+import pandas as pd
 
 #citations = Citations.load('citations.bib', package='q2_classo') 
 plugin = Plugin(
@@ -19,19 +17,64 @@ description=('This is QIIME 2 plugin that enables sparse and robust linear regre
 )
 
 
+CLASSOProblem    = SemanticType("CLASSOProblem")
+ConstraintMatrix = SemanticType("ConstraintMatrix")
+
+plugin.register_semantic_types(ConstraintMatrix)
+plugin.register_semantic_type_to_format(CLASSOProblem, 
+                                        artifact_format=CLASSOProblemDirectoryFormat)
+
+
+@plugin.register_transformer
+def _0(obj: classo_problem) -> CLASSOProblemDirectoryFormat:
+    return classo_to_dir(obj)
+
+
+@plugin.register_transformer
+def _1(obj: BIOMV210Format) -> np.ndarray:
+    return table_to_array(obj)
+
+
+
+
 plugin.methods.register_function(
            function=regress,
-           inputs={'X': FeatureTable[Composition]},
+           inputs={'features': FeatureTable[Composition]},
            parameters=regress_parameters,
-           outputs= [('PATH',Path)],
-           input_descriptions={'X': 'Matrix representing the data of the problem'},
+           outputs= [('result',CLASSOProblem)],
+           input_descriptions={'features': 'Matrix representing the data of the problem'},
            parameter_descriptions=regress_parameter_descriptions,
            output_descriptions= {
-               'PATH':"Type that contains the componants of the solution related to the computation of the path, which are : 'betas,'sigmas','lambdas','method','formulation' and 'time' "
+               'result':"Directory format that will contain all information about the problem solved"
                },
            name='regress',
-           description=("The function computes the constrainted_sparse_regression vector with respect to the formulationof regression that is asked and with respect to the model selection parameters given")
+           description=("The function computes the constrainted_sparse_regression vector with respect to the formulation of regression that is asked and with respect to the model selection parameters given")
            #citations=[citations['Weiss2017']]
            )
+
+
+
+
+
+
+
+
+
+
+
+
+
+plugin.methods.register_function(
+           function=generate_data,
+           inputs={},
+           parameters={'n':Int, 'd':Int, 'd_nonzero':Int},
+           outputs= [('x',FeatureTable[Composition])],
+           input_descriptions={},
+           parameter_descriptions={'n': 'number of sample', 'd': 'number of features','d_nonzero': 'number of non nul componants in beta' },
+           output_descriptions= {'x': 'Matrix representing the data of the problem'},
+           name='generate_data',
+           description=("Function that build random data")
+           )
+
 
 
