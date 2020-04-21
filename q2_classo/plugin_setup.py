@@ -1,10 +1,11 @@
 from qiime2.plugin import (Plugin, Int, Float, Range, Metadata, Str, Bool,
      Choices, MetadataColumn, Categorical, List,
      Citations, TypeMatch, Numeric, SemanticType)
-from q2_types.feature_table import FeatureTable, Composition, BIOMV210DirFmt, BIOMV210Format
+from q2_types.feature_table import FeatureTable, Composition, BIOMV210Format
 from . import  *
 import numpy as np
-import pandas as pd
+import biom
+import zarr
 
 #citations = Citations.load('citations.bib', package='q2_classo') 
 plugin = Plugin(
@@ -20,20 +21,32 @@ description=('This is QIIME 2 plugin that enables sparse and robust linear regre
 CLASSOProblem    = SemanticType("CLASSOProblem")
 ConstraintMatrix = SemanticType("ConstraintMatrix")
 
+
+plugin.register_formats(CLASSOProblemDirectoryFormat)
 plugin.register_semantic_types(ConstraintMatrix)
 plugin.register_semantic_type_to_format(CLASSOProblem, 
                                         artifact_format=CLASSOProblemDirectoryFormat)
 
 
 @plugin.register_transformer
-def _0(obj: classo_problem) -> CLASSOProblemDirectoryFormat:
-    return classo_to_dir(obj)
+def _0(obj: classo_problem) -> ZarrProblemFormat :
+    ff = ZarrProblemFormat()
+    z  = to_zarr(obj)
+    zarr.save(str(ff)+'.zip', z)
+    print("passed to the point where zarr dir is saved")
+    return ff 
 
 
 @plugin.register_transformer
-def _1(obj: BIOMV210Format) -> np.ndarray:
-    return table_to_array(obj)
+def _1(ff: BIOMV210Format) -> np.ndarray:
+    with ff.open() as fh:
+        table = biom.Table.from_hdf5(fh)
 
+    array = table.matrix_data.toarray().T # numpy array
+    return array
+
+def _2(obj : ZarrProblemFormat) -> classo_problem : 
+    return zarr_to_classo(obj)
 
 
 

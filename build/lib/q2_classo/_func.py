@@ -5,13 +5,13 @@ from qiime2.plugin import (SemanticType,Plugin, Int, Float, Range, Metadata, Str
      Citations, TypeMatch, Numeric)
 from q2_types.feature_table import FeatureTable, Composition
 from q2_types.feature_data import FeatureData
-
+import qiime2
 
 
 
 def regress(
             features : np.ndarray,
-            y : np.ndarray,
+            y : qiime2.NumericMetadataColumn,
             #PATH parameters :
             path : bool = True,
             path_numerical_method : str         = 'not specified',
@@ -51,11 +51,11 @@ def regress(
             #Formulation parameters
             concomitant: bool      = True,
             huber      : bool      = False,
-            rho        : float     = 1.345 ,
+            rho        : float     = 1.345,
             rescale    : bool      = False) -> classo_problem :
 
 
-    y = np.array(y.to_dataframe(), dtype=float)[:,0]
+    y = y.to_series().to_numpy()
 
     if len(y)>len(features): 
         print("More outputs than features ! ")
