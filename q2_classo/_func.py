@@ -6,6 +6,7 @@ from qiime2.plugin import (SemanticType,Plugin, Int, Float, Range, Metadata, Str
 from q2_types.feature_table import FeatureTable, Composition
 from q2_types.feature_data import FeatureData
 import qiime2
+import pandas as pd
 
 
 
@@ -57,6 +58,7 @@ def regress(
 
 
     y = y.to_series().to_numpy()
+    print(features.shape)
 
     problem = classo_problem(features, y , C = c, rescale=rescale)
     problem.formulation.huber       = huber
@@ -110,149 +112,13 @@ def regress(
 
     return problem
     
-    '''
-    solution_PATH, solution_CV, solution_StabSel, solution_LAM = problem.solution.PATH, problem.solution.CV, problem.solution.StabSel, problem.solution.LAMfixed
-
-    output = dict()
-    if PATH : output["PATH"] = [solution_PATH.BETAS, solution_PATH.SIGMAS, solution_PATH.LAMBDAS, solution_PATH.method, solution_PATH.formulation, solution_PATH.time]
-    else : output["PATH"] = 'not_computed'
-
-    if CV : output["CV"] = [solution_CV.beta]
-    else : output["CV"] = 'not_computed'
-
-    if StabSel : output["StabSel"] = [solution_StabSel.beta]
-    else : output["StabSel"] = 'not_computed'
-
-    if LAMfixed : output["LAMfixed"] = [solution_LAM.beta]
-    else : output["LAMfixed"] = 'not_computed'
-    return output
-    '''
 
 def generate_data(n : int = 100,
                   d : int = 100,
                   d_nonzero : int = 5
-                    ) -> np.ndarray :
+                    ) -> (np.ndarray, np.ndarray) :
 
-    m,d,d_nonzero,k,sigma =100,100,5,1,0.5
     (X,C,y),sol = random_data(n,d,d_nonzero,0,0.5,zerosum=True,seed= 4)
-    return X
+    pd.DataFrame(data={'id':range(len(y)),'col':y}).to_csv("randomy.tsv",sep='\t',index=False)
+    return X, C
 
-
-
-
-
-
-            
-'''
-Example from feature table :
- 
-
-
-
-def summarize(output_dir: str, table: biom.Table,
-              sample_metadata: qiime2.Metadata = None) -> None:
-    number_of_features, number_of_samples = table.shape
-
-    sample_summary, sample_frequencies = _frequency_summary(
-        table, axis='sample')
-    if number_of_samples > 1:
-
-        # Calculate the bin count, with a minimum of 5 bins
-        IQR = sample_summary['3rd quartile'] - sample_summary['1st quartile']
-        if IQR == 0.0:
-            bins = 5
-        else:
-            # Freedman–Diaconis rule
-            bin_width = (2 * IQR) / (number_of_samples ** (1/3))
-
-            bins = max((sample_summary['Maximum frequency'] -
-                        sample_summary['Minimum frequency']) / bin_width, 5)
-
-        sample_frequencies_ax = sns.distplot(sample_frequencies, kde=False,
-                                             rug=True, bins=int(round(bins)))
-        sample_frequencies_ax.get_xaxis().set_major_formatter(
-            matplotlib.ticker.FuncFormatter(lambda x, p: format(int(x), ',')))
-        sample_frequencies_ax.set_xlabel('Frequency per sample')
-        sample_frequencies_ax.set_ylabel('Number of samples')
-        sample_frequencies_ax.get_figure().savefig(
-            os.path.join(output_dir, 'sample-frequencies.pdf'))
-        sample_frequencies_ax.get_figure().savefig(
-            os.path.join(output_dir, 'sample-frequencies.png'))
-        plt.gcf().clear()
-
-    feature_summary, feature_frequencies = _frequency_summary(
-        table, axis='observation')
-    if number_of_features > 1:
-        feature_frequencies_ax = sns.distplot(feature_frequencies, kde=False,
-                                              rug=False)
-        feature_frequencies_ax.set_xlabel('Frequency per feature')
-        feature_frequencies_ax.set_ylabel('Number of features')
-        feature_frequencies_ax.set_xscale('log')
-        feature_frequencies_ax.set_yscale('log')
-        feature_frequencies_ax.get_figure().savefig(
-            os.path.join(output_dir, 'feature-frequencies.pdf'))
-        feature_frequencies_ax.get_figure().savefig(
-            os.path.join(output_dir, 'feature-frequencies.png'))
-
-    sample_summary_table = q2templates.df_to_html(
-        sample_summary.apply('{:,}'.format).to_frame('Frequency'))
-    feature_summary_table = q2templates.df_to_html(
-        feature_summary.apply('{:,}'.format).to_frame('Frequency'))
-
-    index = os.path.join(TEMPLATES, 'summarize_assets', 'index.html')
-    context = {
-        'number_of_samples': number_of_samples,
-        'number_of_features': number_of_features,
-        'total_frequencies': int(np.sum(sample_frequencies)),
-        'sample_summary_table': sample_summary_table,
-        'feature_summary_table': feature_summary_table,
-    }
-
-    feature_qualitative_data = _compute_qualitative_summary(table)
-    sample_frequencies.sort_values(inplace=True, ascending=False)
-    feature_frequencies.sort_values(inplace=True, ascending=False)
-    sample_frequencies.to_csv(
-        os.path.join(output_dir, 'sample-frequency-detail.csv'))
-    feature_frequencies.to_csv(
-        os.path.join(output_dir, 'feature-frequency-detail.csv'))
-
-    feature_frequencies = feature_frequencies.astype(int) \
-        .apply('{:,}'.format).to_frame('Frequency')
-    feature_frequencies['# of Samples Observed In'] = \
-        pd.Series(feature_qualitative_data).astype(int).apply('{:,}'.format)
-    feature_frequencies_table = q2templates.df_to_html(feature_frequencies)
-    sample_frequency_template = os.path.join(
-        TEMPLATES, 'summarize_assets', 'sample-frequency-detail.html')
-    feature_frequency_template = os.path.join(
-        TEMPLATES, 'summarize_assets', 'feature-frequency-detail.html')
-
-    context.update({'max_count': sample_frequencies.max(),
-                    'feature_frequencies_table': feature_frequencies_table,
-                    'feature_qualitative_data': feature_qualitative_data,
-                    'tabs': [{'url': 'index.html',
-                              'title': 'Overview'},
-                             {'url': 'sample-frequency-detail.html',
-                              'title': 'Interactive Sample Detail'},
-                             {'url': 'feature-frequency-detail.html',
-                              'title': 'Feature Detail'}]})
-
-    # Create a JSON object containing the Sample Frequencies to build the
-    # table in sample-frequency-detail.html
-    sample_frequencies_json = sample_frequencies.to_json()
-
-    templates = [index, sample_frequency_template, feature_frequency_template]
-    context.update({'frequencies_list':
-                    json.dumps(sorted(sample_frequencies.values.tolist()))})
-    if sample_metadata is not None:
-        context.update({'vega_spec':
-                        json.dumps(vega_spec(sample_metadata,
-                                             sample_frequencies
-                                             ))
-                        })
-    context.update({'sample_frequencies_json': sample_frequencies_json})
-    q2templates.util.copy_assets(os.path.join(TEMPLATES,
-                                              'summarize_assets',
-                                              'vega'),
-                                 output_dir)
-    q2templates.render(templates, output_dir, context=context)
-'''

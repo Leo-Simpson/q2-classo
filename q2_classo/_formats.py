@@ -8,10 +8,13 @@ class ZarrProblemFormat(model.BinaryFileFormat):
 
 
 CLASSOProblemDirectoryFormat = model.SingleFileDirectoryFormat(
-    'CLASSOProblemDirectoryFormat', 'problem', format=ZarrProblemFormat
+    'CLASSOProblemDirectoryFormat', 'problem.zip', format=ZarrProblemFormat
 )
 
+class ConstraintFormat(model.BinaryFileFormat):
+    def validate(self,level):
+        pass
 
-def zarr_to_classo(problem):
-    pass
-
+ConstraintDirectoryFormat = model.SingleFileDirectoryFormat(
+    'ConstraintDirectoryFormat', 'cmatrix.zip', format=ConstraintFormat
+)

@@ -2,11 +2,13 @@ from qiime2.plugin import (Plugin, Int, Float, Range, Metadata, Str, Bool,
      Choices, MetadataColumn, Categorical, List,
      Citations, TypeMatch, Numeric, SemanticType)
 from q2_types.feature_table import FeatureTable, Composition, BIOMV210Format
+import qiime2
 from . import  *
 import numpy as np
 import biom
 import zarr
-
+import pandas as pd
+version=qiime2.__version__
 #citations = Citations.load('citations.bib', package='q2_classo') 
 plugin = Plugin(
 name='classo',
@@ -22,39 +24,12 @@ CLASSOProblem    = SemanticType("CLASSOProblem")
 ConstraintMatrix = SemanticType("ConstraintMatrix")
 
 
-plugin.register_formats(CLASSOProblemDirectoryFormat)
-plugin.register_semantic_types(ConstraintMatrix)
+plugin.register_formats(CLASSOProblemDirectoryFormat,ConstraintDirectoryFormat)
+plugin.register_semantic_type_to_format(ConstraintMatrix,
+                                        artifact_format=ConstraintDirectoryFormat)
 plugin.register_semantic_type_to_format(CLASSOProblem, 
                                         artifact_format=CLASSOProblemDirectoryFormat)
 
-@plugin.register_transformer
-def _0(obj: classo_problem) -> CLASSOProblemDirectoryFormat :
-    ff = CLASSOProblemDirectoryFormat()
-    store = zarr.DirectoryStore(str(ff.path/'problem'))
-    root = zarr.group(store=store)
-    to_zarr(obj,'problem',root)
-    print(root.tree())
-    return ff 
-
-
-@plugin.register_transformer
-def _1(ff: BIOMV210Format) -> np.ndarray:
-    with ff.open() as fh:
-        table = biom.Table.from_hdf5(fh)
-    array = table.matrix_data.toarray().T # numpy array
-    return array
-
-def _2(obj : ZarrProblemFormat) -> classo_problem : 
-    store = zarr.ZipStore(obj, mode='r') #+'.zip' ???  
-    root = zarr.group(store=store)
-    return zarr_to_classo(root)
-
-def _3(obj : ZarrProblemFormat) -> zarr.hierarchy.Group : 
-    store = zarr.ZipStore(str(obj), mode='r') #+'.zip' ???  
-    return zarr.group(store=store)
-
-def _4(obj : ConstraintMatrix) -> np.ndarray : 
-    pass
 
 
 
@@ -75,27 +50,92 @@ plugin.methods.register_function(
 
 
 
-
-
-
-
-
-
-
-
-
-
 plugin.methods.register_function(
            function=generate_data,
            inputs={},
            parameters={'n':Int, 'd':Int, 'd_nonzero':Int},
-           outputs= [('x',FeatureTable[Composition])],
+           outputs= [('x',FeatureTable[Composition]),('c',ConstraintMatrix)],
            input_descriptions={},
            parameter_descriptions={'n': 'number of sample', 'd': 'number of features','d_nonzero': 'number of non nul componants in beta' },
-           output_descriptions= {'x': 'Matrix representing the data of the problem'},
+           output_descriptions= {'x': 'Matrix representing the data of the problem','c':'Matrix representing the constraint of the problem'},
            name='generate_data',
            description=("Function that build random data")
            )
 
 
+plugin.visualizers.register_function(
+    function=summarize,
+    inputs={'problem':CLASSOProblem},
+    parameters={},
+    input_descriptions={'problem': 'classo problem object containing the solution of the regression'},
+    parameter_descriptions={},
+    name='Summarize regression solution',
+    description=('Summarize the object created by the regression with its characteristics')
+)
+
+
+
+
+
+'''
+Transformers
+'''
+
+@plugin.register_transformer
+def _0(obj: classo_problem) -> CLASSOProblemDirectoryFormat :
+    # for output of regress
+    ff = CLASSOProblemDirectoryFormat()
+    zipfile = str(ff.path/'problem.zip')
+    store = zarr.ZipStore(zipfile,mode='w')
+    root = zarr.open(store=store)
+    to_zarr(obj,'problem',root)
+    print(root.tree())
+    store.close()
+    return ff 
+
+@plugin.register_transformer
+def _1(ff : ZarrProblemFormat) -> zarr.hierarchy.Group : 
+    # for visualizers
+    store = zarr.ZipStore(str(ff),mode='r')
+    root = zarr.open(store=store)
+    return root
+
+
+
+@plugin.register_transformer
+def _2(obj : np.ndarray) -> BIOMV210Format :
+    # for X in generate data, or generate constraint
+    ff = BIOMV210Format()
+    l1, l2 = [str(i) for i in range(len(obj[0]))],[str(i) for i in range(len(obj))]
+    data = biom.Table(obj,observation_ids=l1,sample_ids=l2)
+    with ff.open() as fh:
+        data.to_hdf5(fh, generated_by='qiime2 %s' % version)
+    return ff
+
+@plugin.register_transformer
+def _3(ff: BIOMV210Format) -> np.ndarray:
+    # for X in regress
+    with ff.open() as fh:
+        table = biom.Table.from_hdf5(fh)
+    array = table.matrix_data.toarray().T # numpy array
+    return array
+
+
+
+
+
+
+@plugin.register_transformer
+def _4(obj : np.ndarray) -> ConstraintDirectoryFormat :
+    # for C in generate data, or generate constraint
+    ff = ConstraintDirectoryFormat()
+    filename = str(ff.path/'cmatrix.zip')
+    zarr.save(filename, obj)
+    return ff
+
+
+@plugin.register_transformer
+def _5(obj : ConstraintFormat) -> np.ndarray : 
+    # for C in regress
+    return zarr.load(str(obj))
 

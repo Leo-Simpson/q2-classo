@@ -6,7 +6,7 @@ import numpy as np
 import q2templates
 import pkg_resources
 
-TEMPLATES = pkg_resources.resource_filename('q2_classo','q2_classo')
+TEMPLATES = pkg_resources.resource_filename('q2_classo','_summarize')
 
 
 
