@@ -24,6 +24,6 @@ setup(
       "qiime2.plugins":
       ["q2-classo=q2_classo.plugin_setup:plugin"]
       },
-      package_data={'q2_classo': ['citations.bib']},
+      package_data={'q2_classo': ['citations.bib','_summarize/assets/*.html','_summarize/form/*.png']},
       zip_safe=False,
       )

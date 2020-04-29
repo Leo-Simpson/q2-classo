@@ -7,7 +7,7 @@ n_lam = 200
 def compute_1SE(mse_max,MSE,i): 
     j=i
     while(MSE[j]<mse_max): j-=1
-    return j
+    return max(j,0)
 
 
 def train_test_CV(n,k,test_pourcent):

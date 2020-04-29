@@ -15,7 +15,7 @@ def regress(
             y : qiime2.NumericMetadataColumn,
             c : np.ndarray  = None,
             #PATH parameters :
-            path : bool = False,
+            path : bool = True,
             path_numerical_method : str         = 'not specified',
             path_n_active         : int         = 0,
             path_lambdas          : list  = None,
@@ -23,15 +23,15 @@ def regress(
             path_lamin_log        : float       = 1e-2,
 
             #CV parameters :
-            cv : bool                         = False,
+            cv : bool                         = True,
             cv_numerical_method : str         = 'not specified',
-            cv_seed             : int         = None, # do something here ! for now it can be a bool !
+            cv_seed             : int         = 1,
             cv_lambdas          : list  = None, # to do 
             cv_one_se            : bool        = True,
             cv_subsets          : int         = 5,
 
             #StabSel parameters :
-            stabsel : bool = False,
+            stabsel : bool = True,
             stabsel_numerical_method : str    = 'not specified',
             stabsel_seed             : int    = None, # do something here ! for now it can be a bool !
             stabsel_lam              : float  = -1.0, # if negative, then it means 'theoretical'
@@ -58,7 +58,6 @@ def regress(
 
 
     y = y.to_series().to_numpy()
-    print(features.shape)
 
     problem = classo_problem(features, y , C = c, rescale=rescale)
     problem.formulation.huber       = huber
@@ -114,7 +113,7 @@ def regress(
     
 
 def generate_data(n : int = 100,
-                  d : int = 100,
+                  d : int = 150,
                   d_nonzero : int = 5
                     ) -> (np.ndarray, np.ndarray) :
 

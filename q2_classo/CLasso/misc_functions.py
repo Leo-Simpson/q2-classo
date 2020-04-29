@@ -270,12 +270,15 @@ def to_zarr(obj,name,root, first=True):
         for key,value in obj.items() :
             to_zarr(value,key,zz,first=False) 
             
-    elif type(obj) in [np.ndarray,np.float64]:
+    elif type(obj) == np.ndarray:
          root.create_dataset(name,data=obj,shape=obj.shape)
+
+    elif type(obj)==np.float64 :
+        root.attrs[name] = float(obj)
 
     elif type(obj)==np.int64 :
          root.attrs[name] = int(obj)
-
+         
     elif type(obj)== list : 
         to_zarr(np.array(obj),name,root,first=False)
     

@@ -89,7 +89,6 @@ def _0(obj: classo_problem) -> CLASSOProblemDirectoryFormat :
     store = zarr.ZipStore(zipfile,mode='w')
     root = zarr.open(store=store)
     to_zarr(obj,'problem',root)
-    print(root.tree())
     store.close()
     return ff 
 
@@ -107,7 +106,7 @@ def _2(obj : np.ndarray) -> BIOMV210Format :
     # for X in generate data, or generate constraint
     ff = BIOMV210Format()
     l1, l2 = [str(i) for i in range(len(obj[0]))],[str(i) for i in range(len(obj))]
-    data = biom.Table(obj,observation_ids=l1,sample_ids=l2)
+    data = biom.Table(obj.T,observation_ids=l1,sample_ids=l2)
     with ff.open() as fh:
         data.to_hdf5(fh, generated_by='qiime2 %s' % version)
     return ff
