@@ -36,14 +36,14 @@ qiime classo generate-data --o-x randomx.qza --o-c randomc.qza
 qiime classo regress --i-features randomx.qza --i-c randomc.qza --m-y-file randomy.tsv --m-y-column col --o-result problem.qza
 ```
 
-#### Make a vizualizer of the solution
+#### Make a visualizer of the solution
 ```shell
 qiime classo summarize \
   --i-problem problem.qza \
   --o-visualization problem.qzv
 ```
 
-#### View our vizualization file
+#### View our visualization file
 ```shell
 qiime tools view problem.qzv
 ```
