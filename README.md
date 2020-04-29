@@ -4,7 +4,9 @@
 ## Commands to run an example
 
 
+#### Install qiime2 and build the environment
 
+https://docs.qiime2.org/2020.2/install/native/#install-qiime-2-within-a-conda-environment
 
 #### Activate your qiime2 environment
 ```shell
