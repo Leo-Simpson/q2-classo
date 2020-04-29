@@ -40,8 +40,7 @@ qiime classo regress --i-features randomx.qza --i-c randomc.qza --m-y-file rando
 ```shell
 qiime classo summarize \
   --i-problem problem.qza \
-  --o-visualization problem.qzv \
- --verbose
+  --o-visualization problem.qzv
 ```
 
 #### View our vizualization file
