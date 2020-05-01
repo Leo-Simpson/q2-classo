@@ -15,6 +15,7 @@ def regress(
             y : qiime2.NumericMetadataColumn,
             c : np.ndarray  = None,
             do_clr : bool = True,
+            taxonomic_table : np.ndarray = None,
             #phylogenetic_tree : np.ndarray = None,
             #PATH parameters :
             path : bool = True,
@@ -66,8 +67,9 @@ def regress(
     else : 
         Features = features
 
+    A = taxonomic_table
 
-    problem = classo_problem(Features, Y , C = c, rescale=rescale)
+    problem = classo_problem(Features, Y , C = c, rescale=rescale, A = A )
     problem.formulation.huber       = huber
     problem.formulation.concomitant = concomitant
     problem.formulation.rho         = rho
