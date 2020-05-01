@@ -14,6 +14,8 @@ def regress(
             features : np.ndarray,
             y : qiime2.NumericMetadataColumn,
             c : np.ndarray  = None,
+            do_clr : bool = True,
+            #phylogenetic_tree : np.ndarray = None,
             #PATH parameters :
             path : bool = True,
             path_numerical_method : str         = 'not specified',
@@ -57,9 +59,15 @@ def regress(
             rescale    : bool      = False) -> classo_problem :
 
 
-    y = y.to_series().to_numpy()
+    Y = y.to_series().to_numpy()
+    if do_clr : 
+        Features = clr(features.T).T
+        Y = Y - np.mean(Y)
+    else : 
+        Features = features
 
-    problem = classo_problem(features, y , C = c, rescale=rescale)
+
+    problem = classo_problem(Features, Y , C = c, rescale=rescale)
     problem.formulation.huber       = huber
     problem.formulation.concomitant = concomitant
     problem.formulation.rho         = rho
@@ -117,7 +125,7 @@ def generate_data(n : int = 100,
                   d_nonzero : int = 5
                     ) -> (np.ndarray, np.ndarray) :
 
-    (X,C,y),sol = random_data(n,d,d_nonzero,0,0.5,zerosum=True,seed= 4)
+    (X,C,y),sol = random_data(n,d,d_nonzero,0,0.5,zerosum=True,seed= 4, exp = True)
     pd.DataFrame(data={'id':range(len(y)),'col':y}).to_csv("randomy.tsv",sep='\t',index=False)
     return X, C
 

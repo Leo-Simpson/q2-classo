@@ -7,6 +7,7 @@ from q2_types.feature_data import FeatureData
 
 regress_parameters={
     'y': MetadataColumn[Numeric],
+    'do_clr' : Bool,
     #Formulation parameters
     'concomitant': Bool,
     'huber'      : Bool,
@@ -53,6 +54,7 @@ regress_parameters={
 }
 regress_parameter_descriptions={
     'y': 'Vector representing the output of the problem',
+    'do_clr' : 'if set to true, then features will be centered-log-ration transformed and y will be centered',
     #Formulation parameters
     'concomitant': 'True if the formulation of the problem should be with an M_estimation of sigma. Default value = True',
     'huber'      : 'True if the formulation of the problem should be robust Default value = False',

@@ -12,7 +12,7 @@ import pandas as pd
 import h5py
 from scipy.special import erfinv
 
-def random_data(n,d,d_nonzero,k,sigma,zerosum=False,seed=False, classification = False):
+def random_data(n,d,d_nonzero,k,sigma,zerosum=False,seed=False, classification = False, exp = False):
     ''' Generation of random matrices as data such that y = X.sol + sigma. noise
 
     The data X is generated as a normal matrix
@@ -59,27 +59,32 @@ def random_data(n,d,d_nonzero,k,sigma,zerosum=False,seed=False, classification =
         break
     y = X.dot(sol)+np.random.randn(n)*sigma
     if classification : y = np.sign(y)
-    return((X,C,y),sol)
+    if exp : return (np.exp(X), C, y), sol
+    return (X,C,y),sol 
 
 
-def check_size(X,y,C):
-    samples = min(len(y),len(X))
+def check_size(X,y,C,A=None):
+    samples, n_features = min(len(y),len(X)), len(X[0])
     X2,y2 = X[:samples] , y[:samples]
     if len(y)   >samples   : print("More outputs than features ! ")
     elif len(X) > samples  : print("More features than outputs !")
 
-    if C is None : C2 = np.ones((1, len(X[0])))
+    if C is None : C2 = np.ones((1, n_features ))
     else : 
-        k, d = len(C), len(X[0])
-        if len(C[0])==d : C2 = C
-        elif len(C)>d : 
+        k = len(C)
+        if len(C[0])==n_features : C2 = C
+        elif len(C)>n_features : 
             print("Too many colomns in constraint matrix !")
-            C2 = C[:,:d]
+            C2 = C[:,:n_features]
         else : 
             print("Too few colomns in constraint matrix !")
-            C2 = np.zeros((k,d))
+            C2 = np.zeros((k,n_features))
             C2[:,:len(C)] = C
-    return X2,y2,C2
+
+    if not A is None and len(A)==n_features : 
+        return X2.dot(A),y2,C2.dot(A)
+    else : 
+        return X2,y2,C2
 
 
 

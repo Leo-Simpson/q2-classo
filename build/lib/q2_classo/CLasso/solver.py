@@ -26,9 +26,10 @@ class classo_data:
 
     '''
 
-    def __init__(self, X, y, C, rescale=False):
+    def __init__(self, X, y, C, A=None, rescale=False):
         self.rescale = rescale  # booleen to know if we rescale the matrices
-        self.X,self.y,self.C = check_size(X,y,C)
+        self.X,self.y,self.C = check_size(X,y,C,A=A)
+        if not A is None : self.A = A
         
 
 class classo_formulation:
@@ -322,10 +323,10 @@ class classo_problem:
                                       Before using the method solve() , its componant are empty/null.
 
     '''
-    def __init__(self, X, y, C=None, label=False, rescale=False):  # zero sum constraint by default, but it can be any matrix
+    def __init__(self, X, y, C=None,A = None, label=False, rescale=False):  # zero sum constraint by default, but it can be any matrix
         if (type(label)==bool): self.label = np.array([str(i) for i in range(len(X[0]))])
         else : self.label = label
-        self.data = classo_data(X, y, C, rescale=rescale)
+        self.data = classo_data(X, y, C,A=A, rescale=rescale)
         self.formulation = classo_formulation()
         self.model_selection = classo_model_selection()
         self.solution = classo_solution()
