@@ -12,6 +12,141 @@ import pandas as pd
 import h5py
 from scipy.special import erfinv
 
+'''functions required in solver : 
+rescale, theoretical_lam, min_LS, affichage, check_size, tree_to_matrix 
+'''
+import skbio
+
+
+def rescale(matrices):
+    ''' Function that rescale the matrix and returns its scale
+
+    Substract the mean of y, then divides by its norm. Also divide each colomn of X by its norm.
+    This will change the solution, not only by scaling it, because then the L1 norm will affect every component equally (and not only the variables with big size)
+
+    Args:
+        matrices (tuple) : tuple of three ndarray matrices corresponding to (X,C,y)
+
+    Returns:
+        tuple : tuple of the three corresponding matrices after normalization
+        tuple : tuple of the three information one need to recover the initial data : lX (list of initial colomn-norms of X), ly (initial norm of y), my (initial mean of y)
+
+    '''
+    (X,C,y)=matrices
+    my = sum(y)/len(y)
+    lX = [LA.norm(X[:,j]) for j in range(len(X[0]))]
+    ly = LA.norm(y-my*np.ones(len(y)))
+    Xn = np.array([[X[i,j]/(lX[j])  for j in range(len(X[0]))] for i in range(len(X))])
+    yn = np.array([ (y[j]-my)/ly for j in range(len(y)) ])
+    Cn = np.array([[C[i,j]*ly/lX[j] for j in range(len(X[0]))] for i in range(len(C))])
+    return((Xn,Cn,yn),(lX,ly,my))
+
+def theoretical_lam(n,d):
+    ''' Theoretical lambda as a function of the dimension of the problem
+
+    This function returns (with :math:`\phi = erf`) :
+
+    :math:`4/ \sqrt{n}  \phi^{-1}(1 - 2x)` such that  :math:`x = 4/d ( \phi^{-1}(1-2x)4 + \phi^{-1}(1-2x)^2 )`
+
+    Which is the same (thanks to formula : :math:`norm^{-1}(1-t) = \sqrt{2}\phi^{-1}(1-2t)` ) as :
+
+    :math:`\sqrt{2/n} * norm^{-1}(1-k/p)` such that  :math:`k = norm^{-1}(1 - k/p)^4 + 2norm^{-1}(1 - k/p)^2`
+
+    Args:
+        n (int) : number of sample
+        d (int)  : number of variables
+
+    Returns:
+        float : theoretical lambda
+
+    '''
+    x=0.
+    dx = 0.1
+    for i in range(10):
+        bo = True
+        while bo :
+            x    += dx
+            f     = erfinv(1-2*x)
+            xd    = 4/d * (f**4+f**2)
+            bo    = (xd>x)           
+        x = x-dx
+        dx = dx/10
+    return(2*f/np.sqrt(n))
+
+def min_LS(matrices,selected):
+    # function to do LS : return  X (X^t X)^-1  X^t y
+    X,C,y = matrices
+    Xr, Cr = X[:,selected],C.T[selected]
+    proj = np.eye(len(Cr)) - Cr.dot(LA.pinv(Cr))
+    ls = LA.multi_dot([ proj, LA.pinv(Xr.dot(proj)),y]) 
+    beta = np.zeros(len(X[0]))
+    beta[selected] = ls
+    return(beta)
+
+def affichage(LISTE_BETA, path, title=' ', labels=False, pix=False, xlabel=" ", ylabel=" ", naffichage=10):
+    BETAS = np.array(LISTE_BETA)
+    l_index = influence(BETAS, naffichage)
+    plt.figure(figsize=(10, 3), dpi=80)
+    if (pix == 'path'): plt.plot(path, [0] * len(path), 'r+')
+    plot_betai(labels, l_index, path, BETAS)
+    plt.title(title), plt.legend(loc=4, borderaxespad=0.)
+    plt.xlabel(xlabel), plt.ylabel(ylabel)
+    if (type(pix) == bool and pix == True):
+        plt.matshow([[(abs(LISTE_BETA[i][j]) > 1e-2) for i in range(len(LISTE_BETA))] for j in
+                     range(len(LISTE_BETA[0]))]),plt.show()
+
+def check_size(X,y,C):
+    samples, n_features = min(len(y),len(X)), len(X[0])
+    X2,y2 = X[:samples] , y[:samples]
+    if len(y)   >samples   : print("More outputs than features ! ")
+    elif len(X) > samples  : print("More features than outputs !")
+
+    if C is None : C2 = np.ones((1, n_features ))
+    else : 
+        k = len(C)
+        if len(C[0])==n_features : C2 = C
+        elif len(C)>n_features : 
+            print("Too many colomns in constraint matrix !")
+            C2 = C[:,:n_features]
+        else : 
+            print("Too few colomns in constraint matrix !")
+            C2 = np.zeros((k,n_features))
+            C2[:,:len(C)] = C
+
+    return X2,y2,C2
+
+def tree_to_matrix(tree,label):
+    # to do here : given a skbio tree and the beta-labels in a given order, return the matrix A and the new labels corresponding
+    dicti = dict()
+    d = len(label)
+    for i in range(d): 
+        name_leave = label[i]
+        dicti[name_leave] = np.zeros(d)
+        dicti[name_leave][i] = 1
+        try:
+            ANCEST = [node.name for node in tree.find(name_leave).ancestors()]
+            
+            for ancest in ANCEST : 
+                if not ancest in dicti : dicti[ancest] = np.zeros(d)
+                dicti[ancest][i] = 1    
+        except MissingNodeError : 
+            print("Label %s is not in the tree" % name_leave )
+
+    
+    L,label2 = [], []
+    for (name,array) in dicti.items():
+        L.append(array)
+        label2.append(name)
+
+    return np.array(L).T , np.array(label2)
+
+
+
+'''functions required in init() : 
+random_data, csv_to_mat, mat_to_np, clr, theoretical_lam, to_zarr
+'''
+
+
 def random_data(n,d,d_nonzero,k,sigma,zerosum=False,seed=False, classification = False, exp = False):
     ''' Generation of random matrices as data such that y = X.sol + sigma. noise
 
@@ -62,75 +197,6 @@ def random_data(n,d,d_nonzero,k,sigma,zerosum=False,seed=False, classification =
     if exp : return (np.exp(X), C, y), sol
     return (X,C,y),sol 
 
-
-def check_size(X,y,C,A=None):
-    samples, n_features = min(len(y),len(X)), len(X[0])
-    X2,y2 = X[:samples] , y[:samples]
-    if len(y)   >samples   : print("More outputs than features ! ")
-    elif len(X) > samples  : print("More features than outputs !")
-
-    if C is None : C2 = np.ones((1, n_features ))
-    else : 
-        k = len(C)
-        if len(C[0])==n_features : C2 = C
-        elif len(C)>n_features : 
-            print("Too many colomns in constraint matrix !")
-            C2 = C[:,:n_features]
-        else : 
-            print("Too few colomns in constraint matrix !")
-            C2 = np.zeros((k,n_features))
-            C2[:,:len(C)] = C
-
-    if not A is None and len(A)==n_features : 
-        return X2.dot(A),y2,C2.dot(A)
-    else : 
-        return X2,y2,C2
-
-
-
-
-
-
-def influence(BETAS,ntop):
-    means = np.mean(abs(BETAS),axis=0)
-    top = np.argpartition(means, -ntop)[-ntop:]
-    return(np.sort(top))
-
-def plot_betai(labels,l_index,path,BETAS):
-    j=0
-    for i in range(len(BETAS[0])) :
-        if(j<len(l_index) and i==l_index[j]):
-            if not (type(labels)==bool): leg = 'Coefficient '+str(labels[i])
-            else : leg = 'Coefficient '+str(i)
-            plt.plot(path,BETAS[:,i],label=leg,color=colo[j])
-            j+=1
-        else:
-            plt.plot(path, BETAS[:, i], color=colo[i+j])
-
-def affichage(LISTE_BETA, path, title=' ', labels=False, pix=False, xlabel=" ", ylabel=" ", naffichage=10):
-    BETAS = np.array(LISTE_BETA)
-    l_index = influence(BETAS, naffichage)
-    plt.figure(figsize=(10, 3), dpi=80)
-    if (pix == 'path'): plt.plot(path, [0] * len(path), 'r+')
-    plot_betai(labels, l_index, path, BETAS)
-    plt.title(title), plt.legend(loc=4, borderaxespad=0.)
-    plt.xlabel(xlabel), plt.ylabel(ylabel)
-    if (type(pix) == bool and pix == True):
-        plt.matshow([[(abs(LISTE_BETA[i][j]) > 1e-2) for i in range(len(LISTE_BETA))] for j in
-                     range(len(LISTE_BETA[0]))]),plt.show()
-
-
-def normalize(lb,lna,ly):
-    for j in range(len(lb[0])):
-        lb[:,j] =  lb[:,j]*ly/lna[j]
-    return(lb)     
-
-def denorm(B,lna,ly): return(np.array([ly*B[j]/(np.sqrt(len(B))*lna[j]) for j in range(len(B))]) ) 
-
-
-
-
-
 def csv_to_mat(file,begin = 1, header=None):
     ''' Function to read a csv file and to create an ndarray with this
 
@@ -145,89 +211,20 @@ def csv_to_mat(file,begin = 1, header=None):
     tab1=pd.read_csv(file,header=header)
     return(np.array(tab1)[:,begin:])
 
-def rescale(matrices):
-    ''' Function that rescale the matrix and returns its scale
-
-    Substract the mean of y, then divides by its norm. Also divide each colomn of X by its norm.
-    This will change the solution, not only by scaling it, because then the L1 norm will affect every component equally (and not only the variables with big size)
+def mat_to_np(file):
+    ''' Function to read a mat file and to create an ndarray with this
 
     Args:
-        matrices (tuple) : tuple of three ndarray matrices corresponding to (X,C,y)
+        file (str): Name of mat file
 
     Returns:
-        tuple : tuple of the three corresponding matrices after normalization
-        tuple : tuple of the three information one need to recover the initial data : lX (list of initial colomn-norms of X), ly (initial norm of y), my (initial mean of y)
-
+         ndarray : matrix of the mat file
     '''
-    (X,C,y)=matrices
-    my = sum(y)/len(y)
-    lX = [LA.norm(X[:,j]) for j in range(len(X[0]))]
-    ly = LA.norm(y-my*np.ones(len(y)))
-    Xn = np.array([[X[i,j]/(lX[j])  for j in range(len(X[0]))] for i in range(len(X))])
-    yn = np.array([ (y[j]-my)/ly for j in range(len(y)) ])
-    Cn = np.array([[C[i,j]*ly/lX[j] for j in range(len(X[0]))] for i in range(len(C))])
-    return((Xn,Cn,yn),(lX,ly,my))
-
-
-def hub(r,rho) : 
-    h=0
-    for j in range(len(r)):
-        if(abs(r[j])<rho): h+=r[j]**2
-        elif(r[j]>0)     : h+= (2*r[j]-rho)*rho
-        else             : h+= (-2*r[j]-rho)*rho
-    return(h)
-def L_LS(A,y,lamb,x): return(LA.norm( A.dot(x) - y )**2 + lamb * LA.norm(x,1))
-def L_conc(A,y,lamb,x): return(LA.norm( A.dot(x) - y ) + np.sqrt(2)*lamb * LA.norm(y,1))
-def L_H(A,y,lamb,x,rho): return(hub( A.dot(x) - y , rho) + lamb * LA.norm(x,1))
-
-
-# Compute I - C^t (C.C^t)^-1 . C : the projection on Ker(C)
-def proj_c(M,d):
-    if (LA.matrix_rank(M)==0):  return(np.eye(d))
-    return(np.eye(d)-LA.multi_dot([M.T,np.linalg.inv(M.dot(M.T) ),M]) )
-
-
-def theoretical_lam(n,d):
-    ''' Theoretical lambda as a function of the dimension of the problem
-
-    This function returns (with :math:`\phi = erf`) :
-
-    :math:`4/ \sqrt{n}  \phi^{-1}(1 - 2x)` such that  :math:`x = 4/d ( \phi^{-1}(1-2x)4 + \phi^{-1}(1-2x)^2 )`
-
-    Which is the same (thanks to formula : :math:`norm^{-1}(1-t) = \sqrt{2}\phi^{-1}(1-2t)` ) as :
-
-    :math:`\sqrt{2/n} * norm^{-1}(1-k/p)` such that  :math:`k = norm^{-1}(1 - k/p)^4 + 2norm^{-1}(1 - k/p)^2`
-
-    Args:
-        n (int) : number of sample
-        d (int)  : number of variables
-
-    Returns:
-        float : theoretical lambda
-
-    '''
-    x=0.
-    dx = 0.1
-    for i in range(10):
-        bo = True
-        while bo :
-            x    += dx
-            f     = erfinv(1-2*x)
-            xd    = 4/d * (f**4+f**2)
-            bo    = (xd>x)           
-        x = x-dx
-        dx = dx/10
-    return(2*f/np.sqrt(n))
-
-# function to do LS : return  X (X^t X)^-1  X^t y
-def min_LS(matrices,selected):
-    X,C,y = matrices
-    Xr, Cr = X[:,selected],C.T[selected]
-    proj = np.eye(len(Cr)) - Cr.dot(LA.pinv(Cr))
-    ls = LA.multi_dot([ proj, LA.pinv(Xr.dot(proj)),y]) 
-    beta = np.zeros(len(X[0]))
-    beta[selected] = ls
-    return(beta)
+    arrays = {}
+    f = h5py.File(file)
+    for k,v in f.items():
+        arrays[k]=np.array(v)
+    return arrays
 
 def clr(array, coef=0.5):
     ''' Centered-Log-Ratio transformation
@@ -247,22 +244,6 @@ def clr(array, coef=0.5):
     M[null_set] = np.ones(M[null_set].shape)*coef
     M = np.log(M)
     return(M - np.mean(M, axis=0))
-
-def mat_to_np(file):
-    ''' Function to read a mat file and to create an ndarray with this
-
-    Args:
-        file (str): Name of mat file
-
-    Returns:
-         ndarray : matrix of the mat file
-    '''
-    arrays = {}
-    f = h5py.File(file)
-    for k,v in f.items():
-        arrays[k]=np.array(v)
-    return arrays
-
 
 def to_zarr(obj,name,root, first=True):
 
@@ -296,104 +277,46 @@ def to_zarr(obj,name,root, first=True):
 
 
 
-
-
-
-
-
-
 '''
-def verify(obj,beta,sigma):
-    epsilon = 0.01
-    N = 1000
-    booleans = np.array([True]*N)
-    opt = obj(beta,sigma)
-    for i in range(N):
-        beta_prime = beta[:]
-        for j in range(len(beta_prime)):
-            beta_prime[j]+=epsilon*np.random.random()
-        sigma_prime = sigma + epsilon*np.random.random()
-        booleans[i] = (obj(beta_prime,sigma_prime) > opt)
-    return(np.all(booleans))
-
-
-def plot_influence(labels,l_influence):
-    print("influent variables  : \n \n")
-    for beta in l_influence:
-        string=''
-        for colo in range(1,7):
-            string+= str(labels.loc[beta,colo])
-        print(string + '\n')
-
-def support_dist(x,y):
-    s = 0 
-    n = len(x)
-    for k in range(n):
-        x_null, y_null = (abs(x[k])<1e-4), (abs(y[k])<1e-4)
-        if (x_null and not y_null) or (y_null and not x_null): s+=1
-    return(s)
-        
-def compare(L,show,lam):
-    str1 = 'Execution time : \n \n'
-    str2 = '\n Iterations : \n \n'
-    str3 = '\n L2-difference between : \n \n'
-    str4 = '\n For concomitant algorithms : \n \n'
-    for i in range(len(L)) :
-        x,niter,dt = L[i][0][:3]
-        name = L[i][1]
-        if (show=='sep' or show==True):
-            plt.title('lam = '+str(lam))
-            plt.bar(range(len(x)),x,label=name,color=colo[i])
-            plt.legend()
-            if (show=='sep'): plt.show()
-        if (niter != 0):
-            str1+= name+' :'+str(round(dt,5)) + '\n'
-            str2+= name+' :'+str(niter)+ '\n'
-        for j in range (i+1,len(L)): str3+= name + ' and '+L[j][1] +'             : ' + str(round(LA.norm((L[j][0][0]-x)),4)) + '\n'
-    plt.show()
-    printsigma =False
-    for i in range(len(L)) :
-        if (len(L[i][0])==4): 
-            printsigma = True
-            str4+=' Sigma '+L[i][1]+'  :'+str(round(L[i][0][3],3))
- 
-    print(str1)
-    print(str2)
-    if (len(L)>1): print(str3)
-    if (printsigma): print(str4)
-    
-    
-def old_normalize(lb,lna,ly):
-    lbetaprime = []
-    for beta in lb:
-        lbetaprime.append( np.array([ly*beta[j]/(lna[j]) for j in range(len(beta))]) )
-    return(lbetaprime)
-    
-def name(tol,string): return(string+'  tol={:.0e}'.format(float(tol)))   
-
-def aff(M):
-    (m,n)= M.shape
-    for i in range(m):
-        string =  ''
-        for j in range(n):
-            to_ad=str(round(abs(M[i,j]),3))
-            string+=to_ad+' '*(5-len(to_ad))+' |'
-        print(string + '//')   
-        
-def influence_old(sol,top):
-    l_influence = []
-    for j in range(top):
-        maxi = 0.
-        for i in range(len(sol)): 
-            if ( not (i in l_influence) and (abs(sol[i])>=maxi)): maxi,argmaxi = abs(sol[i]), i
-        l_influence.append(argmaxi)
-    return(l_influence)
-    
-    
-def plot_betai_old(labels,l_index,path,BETA):
-    for i in range(len(l_index)) :
-        leg = 'index = '+str(l_index[i])
-        if not (type(labels)==bool): leg+='  '+ str(labels[l_index[i]])
-        if (i>10): plt.plot(path,[BETA[ilam][l_index[i]] for ilam in range(len(path))],color=colo[l_index[i]])
-        else:     plt.plot(path,[BETA[ilam][l_index[i]] for ilam in range(len(path))],label=leg,color=colo[l_index[i]])
+misc of misc functions
 '''
+
+def plot_betai(labels,l_index,path,BETAS):
+    j=0
+    for i in range(len(BETAS[0])) :
+        if(j<len(l_index) and i==l_index[j]):
+            if not (type(labels)==bool): leg = 'Coefficient '+str(labels[i])
+            else : leg = 'Coefficient '+str(i)
+            plt.plot(path,BETAS[:,i],label=leg,color=colo[j])
+            j+=1
+        else:
+            plt.plot(path, BETAS[:, i], color=colo[i+j])
+
+def influence(BETAS,ntop):
+    means = np.mean(abs(BETAS),axis=0)
+    top = np.argpartition(means, -ntop)[-ntop:]
+    return(np.sort(top))
+
+def normalize(lb,lna,ly):
+    for j in range(len(lb[0])):
+        lb[:,j] =  lb[:,j]*ly/lna[j]
+    return(lb)     
+
+def denorm(B,lna,ly): return(np.array([ly*B[j]/(np.sqrt(len(B))*lna[j]) for j in range(len(B))]) ) 
+
+def hub(r,rho) : 
+    h=0
+    for j in range(len(r)):
+        if(abs(r[j])<rho): h+=r[j]**2
+        elif(r[j]>0)     : h+= (2*r[j]-rho)*rho
+        else             : h+= (-2*r[j]-rho)*rho
+    return(h)
+def L_LS(A,y,lamb,x): return(LA.norm( A.dot(x) - y )**2 + lamb * LA.norm(x,1))
+def L_conc(A,y,lamb,x): return(LA.norm( A.dot(x) - y ) + np.sqrt(2)*lamb * LA.norm(y,1))
+def L_H(A,y,lamb,x,rho): return(hub( A.dot(x) - y , rho) + lamb * LA.norm(x,1))
+
+def proj_c(M,d):
+    # Compute I - C^t (C.C^t)^-1 . C : the projection on Ker(C)
+    if (LA.matrix_rank(M)==0):  return(np.eye(d))
+    return(np.eye(d)-LA.multi_dot([M.T,np.linalg.inv(M.dot(M.T) ),M]) )
+

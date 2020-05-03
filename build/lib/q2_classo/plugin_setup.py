@@ -1,15 +1,24 @@
 from qiime2.plugin import (Plugin, Int, Float, Range, Metadata, Str, Bool,
      Choices, MetadataColumn, Categorical, List,
      Citations, TypeMatch, Numeric, SemanticType)
+
+import csv
+import skbio
 from q2_types.feature_table import FeatureTable, Composition, BIOMV210Format
+from q2_types.feature_data import TSVTaxonomyFormat, TSVTaxonomyDirectoryFormat
 import qiime2
 from . import  *
 import numpy as np
 import biom
 import zarr
 import pandas as pd
+
+
 version=qiime2.__version__
 #citations = Citations.load('citations.bib', package='q2_classo') 
+
+
+
 plugin = Plugin(
 name='classo',
                 version='0.0.0.dev0',
@@ -21,12 +30,15 @@ description=('This is QIIME 2 plugin that enables sparse and robust linear regre
 
 
 CLASSOProblem    = SemanticType("CLASSOProblem")
+TaxaTree        = SemanticType("TaxaTree")
 ConstraintMatrix = SemanticType("ConstraintMatrix")
 
 
 plugin.register_formats(CLASSOProblemDirectoryFormat,ConstraintDirectoryFormat)
 plugin.register_semantic_type_to_format(ConstraintMatrix,
                                         artifact_format=ConstraintDirectoryFormat)
+plugin.register_semantic_type_to_format(TaxaTree,
+                                        artifact_format=TSVTaxonomyDirectoryFormat)
 plugin.register_semantic_type_to_format(CLASSOProblem, 
                                         artifact_format=CLASSOProblemDirectoryFormat)
 
@@ -35,10 +47,16 @@ plugin.register_semantic_type_to_format(CLASSOProblem,
 
 plugin.methods.register_function(
            function=regress,
-           inputs={'features': FeatureTable[Composition], 'c':ConstraintMatrix},
+           inputs={'features': FeatureTable[Composition], 
+                    'c':ConstraintMatrix,
+                    'taxonomic_tree': TaxaTree
+                    },
            parameters=regress_parameters,
            outputs= [('result',CLASSOProblem)],
-           input_descriptions={'features': 'Matrix representing the data of the problem','c': 'Constraint matrix, default is the zero-sum',},
+           input_descriptions={'features': 'Matrix representing the data of the problem',
+                                'c': 'Constraint matrix, default is the zero-sum',
+                                'taxonomic_tree':'Taxonomic table in order to build matrix A and then change the problem to the new formulation (with log(X)A instead of log(X))'
+                                },
            parameter_descriptions=regress_parameter_descriptions,
            output_descriptions= {
                'result':"Directory format that will contain all information about the problem solved"
@@ -111,14 +129,18 @@ def _2(obj : np.ndarray) -> BIOMV210Format :
         data.to_hdf5(fh, generated_by='qiime2 %s' % version)
     return ff
 
+'''
 @plugin.register_transformer
 def _3(ff: BIOMV210Format) -> np.ndarray:
     # for X in regress
     with ff.open() as fh:
         table = biom.Table.from_hdf5(fh)
     array = table.matrix_data.toarray().T # numpy array
+    sample_ids = table.ids(axis='sample')
+    feature_ids = table.ids(axis='observation')
+    data = pd.DataFrame(array, index=sample_ids, columns=feature_ids)
     return array
-
+'''
 
 
 
@@ -137,4 +159,32 @@ def _4(obj : np.ndarray) -> ConstraintDirectoryFormat :
 def _5(obj : ConstraintFormat) -> np.ndarray : 
     # for C in regress
     return zarr.load(str(obj))
+
+
+
+@plugin.register_transformer
+def _6(ff: TSVTaxonomyFormat) -> skbio.TreeNode:
+    # transformer for phylogenetic tree 
+    root = skbio.TreeNode('root', length=0)
+    with ff.open() as fh:
+        reader = iter(csv.reader(fh, delimiter='\t'))
+        next(reader)  # skip header
+        for row in reader:
+            id_, taxonomy = row[:2]
+            taxonomy = taxonomy.split(';')
+            node = root
+            for taxon in taxonomy:
+                for child in node.children:
+                    if child.name == taxon:
+                        node = child
+                        break
+                else:
+                    child = skbio.TreeNode(taxon, length=1)
+                    node.append(child)
+                    node = child
+
+            node.append(skbio.TreeNode(id_, length=1))
+
+    return root
+
 

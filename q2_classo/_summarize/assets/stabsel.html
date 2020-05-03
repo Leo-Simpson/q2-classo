@@ -33,7 +33,11 @@
         <h2>Stability Selection profile</h2>
             {{dicostabsel.htmlstab}}
             <h4><a href="StabSel-prob.csv">Download stability selection profile as CSV</a></h4>
-            <img src="stabsel-graph.png">   
+            <img src="stabsel-graph.png">  
+            {% if dicostabsel.with_path %}
+                <h3>Stabiliy Selection profile over lambdas path </h3>
+                <img src="stabsel-path.png"> 
+            {% endif %}
             <h3>Beta-solution after refit </h3>
             <img src="stabsel-refit.png">
     </div>

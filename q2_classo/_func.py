@@ -7,16 +7,16 @@ from q2_types.feature_table import FeatureTable, Composition
 from q2_types.feature_data import FeatureData
 import qiime2
 import pandas as pd
+import skbio
 
 
 
 def regress(
-            features : np.ndarray,
+            features : pd.DataFrame,
             y : qiime2.NumericMetadataColumn,
             c : np.ndarray  = None,
             do_clr : bool = True,
-            taxonomic_table : np.ndarray = None,
-            #phylogenetic_tree : np.ndarray = None,
+            taxonomic_tree : skbio.TreeNode = None,
             #PATH parameters :
             path : bool = True,
             path_numerical_method : str         = 'not specified',
@@ -62,14 +62,12 @@ def regress(
 
     Y = y.to_series().to_numpy()
     if do_clr : 
-        Features = clr(features.T).T
+        Features = clr(features.values.T).T
         Y = Y - np.mean(Y)
     else : 
-        Features = features
+        Features = features.values
 
-    A = taxonomic_table
-
-    problem = classo_problem(Features, Y , C = c, rescale=rescale, A = A )
+    problem = classo_problem(Features, Y , C = c, rescale=rescale, Tree = taxonomic_tree, label = list(features.columns) )
     problem.formulation.huber       = huber
     problem.formulation.concomitant = concomitant
     problem.formulation.rho         = rho

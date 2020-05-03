@@ -2,7 +2,7 @@ from time import time
 import numpy as np
 import matplotlib.pyplot as plt
 
-from .misc_functions import rescale, theoretical_lam, min_LS, affichage, check_size
+from .misc_functions import rescale, theoretical_lam, min_LS, affichage, check_size, tree_to_matrix
 from .compact_func import Classo, pathlasso
 from .cross_validation import CV
 from .stability_selection import stability, selected_param
@@ -17,19 +17,34 @@ class classo_data:
         y (ndarray): Vector representing the output of the problem
         C (str or array, optional ): Matrix of constraints to the problem. If it is 'zero-sum' then the corresponding attribute will be all-one matrix.
         rescale (bool, optional): if True, then the function :func:`rescale` will be applied to data when solving the problem
+        label (list) : list of the labels of each variable. If None, then label or just int
+        Tree (skbio.TreeNode) : taxonomic tree, if set it is not None, then the matrices X and C and the labels will be changed. 
 
     Attributes:
         X (ndarray): Matrix representing the data of the problem
         y (ndarray): Vector representing the output of the problem
         C (str or array, optional ): Matrix of constraints to the problem. If it is 'zero-sum' then the corresponding attribute will be all-one matrix.
         rescale (bool, optional): if True, then the function :func:`rescale` will be applied to data when solving the problem
+        label (list) : list of the labels of each variable. If None, then label or just int
+        tree (skbio.TreeNode) : taxonomic tree 
 
     '''
 
-    def __init__(self, X, y, C, A=None, rescale=False):
+    def __init__(self, X, y, C, Tree=None, rescale=False, label=None):
         self.rescale = rescale  # booleen to know if we rescale the matrices
-        self.X,self.y,self.C = check_size(X,y,C,A=A)
-        if not A is None : self.A = A
+        self.tree = Tree
+        X1,y1,C1 = check_size(X,y,C)
+
+        if Tree is None : 
+            if (label is None): self.label = np.array([str(i) for i in range(len(X[0]))])
+            else : self.label = np.array(label)
+            self.X,self.y,self.C = X1,y1,C1
+
+        else : 
+            A, label2 = tree_to_matrix(Tree,label)
+            self.X,self.y,self.C = X1.dot(A),y1,C1.dot(A)
+            self.label = label2
+            
         
 
 class classo_formulation:
@@ -313,9 +328,9 @@ class classo_problem:
                Default value to 'zero-sum'
         rescale (bool, optional): if True, then the function :func:`rescale` will be applied to data when solving the problem.
                Default value is 'False'
+        label (list) : list of the labels of each variable. If None, then label or just int
 
     Attributes:
-        label (list or bool) : list of the labels of each variable. If set to False then there is no label
         data (classo_data) :  object containing the data of the problem.
         formulation (classo_formulation) : object containing the info about the formulation of the minimization problem we solve.
         model_selection (classo_model_selection) : object giving the parameters we need to do variable selection.
@@ -323,10 +338,8 @@ class classo_problem:
                                       Before using the method solve() , its componant are empty/null.
 
     '''
-    def __init__(self, X, y, C=None,A = None, label=False, rescale=False):  # zero sum constraint by default, but it can be any matrix
-        if (type(label)==bool): self.label = np.array([str(i) for i in range(len(X[0]))])
-        else : self.label = label
-        self.data = classo_data(X, y, C,A=A, rescale=rescale)
+    def __init__(self, X, y, C=None,Tree = None, label=False, rescale=False):  # zero sum constraint by default, but it can be any matrix
+        self.data = classo_data(X, y, C,Tree=Tree, rescale=rescale, label = label)
         self.formulation = classo_formulation()
         self.model_selection = classo_model_selection()
         self.solution = classo_solution()
@@ -354,11 +367,11 @@ class classo_problem:
 
         # Compute the path thanks to the class solution_path which contains directely the computation in the initialisation
         if self.model_selection.PATH:
-            solution.PATH = solution_PATH(matrices, self.model_selection.PATHparameters, self.formulation, self.label)
+            solution.PATH = solution_PATH(matrices, self.model_selection.PATHparameters, self.formulation, data.label)
 
         # Compute the cross validation thanks to the class solution_CV which contains directely the computation in the initialisation
         if self.model_selection.CV:
-            solution.CV = solution_CV(matrices, self.model_selection.CVparameters, self.formulation, self.label)
+            solution.CV = solution_CV(matrices, self.model_selection.CVparameters, self.formulation, data.label)
 
         # Compute the Stability Selection thanks to the class solution_SS which contains directely the computation in the initialisation
         if self.model_selection.StabSel:
@@ -366,14 +379,14 @@ class classo_problem:
             param.theoretical_lam = theoretical_lam(int(n * param.percent_nS), d)
             if(param.true_lam): param.theoretical_lam = param.theoretical_lam*int(n * param.percent_nS)
 
-            solution.StabSel = solution_StabSel(matrices, param, self.formulation, self.label)
+            solution.StabSel = solution_StabSel(matrices, param, self.formulation, data.label)
 
         # Compute the c-lasso problem at a fixed lam thanks to the class solution_LAMfixed which contains directely the computation in the initialisation
         if self.model_selection.LAMfixed:
             param = self.model_selection.LAMfixedparameters
             param.theoretical_lam = theoretical_lam(n, d)
             if(param.true_lam): param.theoretical_lam = param.theoretical_lam*n
-            solution.LAMfixed = solution_LAMfixed(matrices, param, self.formulation, self.label)
+            solution.LAMfixed = solution_LAMfixed(matrices, param, self.formulation, data.label)
 
         self.solution = solution
 
@@ -548,9 +561,10 @@ class solution_CV:
         plt.show()
         return (str(round(self.time, 3)) + "s")
 
-    def graphic(self, mse_max=1.,save=False):
+    def graphic(self, ratio_mse_max=1.,save=False):
         i_min, i_1SE = self.index_min, self.index_1SE
-        for j in range(len(self.xGraph)):
+        mse_max = ratio_mse_max * self.standard_error[i_min]
+        for j in range(i_1SE-3):
             if (self.yGraph[j] < mse_max): break
 
         plt.errorbar(self.xGraph[j:], self.yGraph[j:], self.standard_error[j:], label='mean over the k groups of data', errorevery = 10 )
@@ -813,8 +827,8 @@ StabSel_graph       = {
                             "ylabel" : r"Selection probability "}
 StabSel_path        = {
                             "title"  : r"Stability selection profile across $\lambda$-path using " ,
-                            "xlabel" : r"Coefficient index $i$" ,
-                            "ylabel" : r"Coefficients $\beta_i$ "}
+                            "xlabel" : r"$\lambda$" ,
+                            "ylabel" : r"Selection probability "}
 StabSel_beta        = {
                             "title"  : r"Refitted coefficients after stability selection" ,
                             "xlabel" : r"Coefficient index $i$" ,

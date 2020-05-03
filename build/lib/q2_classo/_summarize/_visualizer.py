@@ -32,7 +32,7 @@ def summarize(output_dir: str, problem : zarr.hierarchy.Group):
 
 def build_context(output_dir,problem):
 
-    labels = problem['label']
+    labels = problem['data/label']
     features = pd.DataFrame(problem['data/X'],columns=labels)
     y = pd.DataFrame({'y':problem['data/y']})
     c = pd.DataFrame(problem['data/C'], columns = labels)
@@ -80,7 +80,7 @@ def build_context(output_dir,problem):
         dico_cv = { **problem['model_selection/CVparameters'].attrs.asdict(), **problem['solution/CV'].attrs.asdict() }
         dico_cv['lamin']= min(xGraph)
         dico_cv['Nlam']= len(xGraph)
-        beta = pd.DataFrame(data={'label':problem['label'],'beta':problem['solution/CV/refit']})
+        beta = pd.DataFrame(data={'label':labels,'beta':problem['solution/CV/refit']})
         beta.to_csv(os.path.join(output_dir,'CV-beta.csv'),header=True, index=False)
         selected_param = np.array(problem['solution/CV/selected_param'])
         beta_support = beta[selected_param]
@@ -98,11 +98,13 @@ def build_context(output_dir,problem):
         context['stabsel'] = True
         context['tabs'].append({'title': 'Stability Selection','url': 'stabsel.html'})
         dico_stabsel = { **problem['model_selection/StabSelparameters'].attrs.asdict(), **problem['solution/StabSel'].attrs.asdict() }
-        
-        stability = pd.DataFrame(data={'label':problem['label'],'stability-probability':problem['solution/StabSel/distribution']})
+        dico_stabsel["with_path"] = ( dico_stabsel['method'] == 'first'  )
+
+        stability = pd.DataFrame(data={'label':labels,'stability-probability':problem['solution/StabSel/distribution']})
         stability.to_csv(os.path.join(output_dir,'StabSel-prob.csv'),header=True, index=False)
         selected_param = np.array(problem['solution/StabSel/selected_param'])
         stability_support = stability[selected_param]
+        
 
         dico_stabsel['nsel']=len(stability_support)
         dico_stabsel['htmlstab']=q2templates.df_to_html(stability_support, index=False)
@@ -111,6 +113,10 @@ def build_context(output_dir,problem):
 
         plot_beta(np.array(problem['solution/StabSel/refit']),selected_param,output_dir,labels,'stabsel-refit.png',r"Refitted coefficients of $\beta$ after stability selection")
         plot_stability(problem['solution/StabSel/distribution'], selected_param, dico_stabsel['threshold'],dico_stabsel['method'], labels, output_dir,'stabsel-graph.png')
+        
+        if dico_stabsel["with_path"]: 
+            plot_stability_path(problem['solution/StabSel/lambdas_path'], problem['solution/StabSel/distribution_path'],
+                                selected_param,dico_stabsel['threshold'],dico_stabsel['method'], output_dir, 'stabsel-path.png')
 
     if dico_ms['LAMfixed']:
         context['lam'] = True
@@ -118,7 +124,7 @@ def build_context(output_dir,problem):
         dico_lam = { **problem['model_selection/LAMfixedparameters'].attrs.asdict(), **problem['solution/LAMfixed'].attrs.asdict() }
         dico_lam['lamtype']= problem['model_selection/LAMfixedparameters'].attrs['lam']
 
-        beta = pd.DataFrame(data={'label':problem['label'],'beta':problem['solution/LAMfixed/refit']})
+        beta = pd.DataFrame(data={'label':labels,'beta':problem['solution/LAMfixed/refit']})
         beta.to_csv(os.path.join(output_dir,'LAM-beta.csv'),header=True, index=False)
         selected_param = np.array(problem['solution/LAMfixed/selected_param'])
         beta_support = beta[selected_param]
@@ -200,8 +206,8 @@ def plot_cv(xGraph, yGraph,index_1SE, index_min,SE, output_dir, name):
     fig = plt.figure()
     ax = fig.subplots()
 
-    mse_max = 1.
-    for j in range(len(xGraph)):
+    mse_max = 10*SE[index_min]
+    for j in range(index_1SE - 3):
         if (yGraph[j] < mse_max): break
 
     ax.errorbar(xGraph[j:], yGraph[j:], SE[j:], label='mean over the k groups of data', errorevery = 10 )
@@ -235,6 +241,31 @@ def plot_stability(distribution, selected_param, threshold, method, labels, outp
     ax.set_ylabel(r"Selection probability ")
     ax.set_title(r"Stability selection profile with method "+ method)
     ax.legend()
+
+
+    fig.savefig(os.path.join(output_dir, name))
+
+
+import matplotlib.patches as mpatches
+def plot_stability_path(lambdas, D_path, selected, threshold,method,output_dir,name):
+    fig = plt.figure()
+    ax = fig.subplots()
+    N = len(D_path)
+    for i in range(len(selected)):
+        if selected[i]: c='red'
+        else          : c='blue'
+        ax.plot(lambdas, [D_path[j][i] for j in range(N)], c)
+    ax.axhline(y=threshold,color='green')
+
+    p1 = mpatches.Patch(color='red', label='selected coefficients')
+    p2 = mpatches.Patch(color='blue',label='unselected coefficients')
+    p3 = mpatches.Patch(color='green',label='Threshold : thresh = '+ str(threshold))
+    ax.legend(handles=[p1, p2, p3], loc=1)
+    
+
+    ax.set_xlabel(r"$\lambda$")
+    ax.set_ylabel(r"Selection probability ")
+    ax.set_title(r"Stability selection profile across $\lambda$-path with method "+ method)
 
 
     fig.savefig(os.path.join(output_dir, name))

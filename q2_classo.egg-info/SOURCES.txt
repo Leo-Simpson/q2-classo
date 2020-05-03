@@ -21,7 +21,6 @@ q2_classo/CLasso/solve_R1.py
 q2_classo/CLasso/solve_R2.py
 q2_classo/CLasso/solve_R3.py
 q2_classo/CLasso/solve_R4.py
-q2_classo/CLasso/solver 2.py
 q2_classo/CLasso/solver.py
 q2_classo/CLasso/stability_selection 2.py
 q2_classo/CLasso/stability_selection.py
