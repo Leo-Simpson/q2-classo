@@ -5,7 +5,7 @@ from qiime2.plugin import (Plugin, Int, Float, Range, Metadata, Str, Bool,
 import csv
 import skbio
 from q2_types.feature_table import FeatureTable, Composition, BIOMV210Format
-from q2_types.feature_data import TSVTaxonomyFormat, TSVTaxonomyDirectoryFormat
+from q2_types.feature_data import TSVTaxonomyFormat, FeatureData, Taxonomy
 import qiime2
 from . import  *
 import numpy as np
@@ -30,15 +30,12 @@ description=('This is QIIME 2 plugin that enables sparse and robust linear regre
 
 
 CLASSOProblem    = SemanticType("CLASSOProblem")
-TaxaTree        = SemanticType("TaxaTree")
 ConstraintMatrix = SemanticType("ConstraintMatrix")
 
 
 plugin.register_formats(CLASSOProblemDirectoryFormat,ConstraintDirectoryFormat)
 plugin.register_semantic_type_to_format(ConstraintMatrix,
                                         artifact_format=ConstraintDirectoryFormat)
-plugin.register_semantic_type_to_format(TaxaTree,
-                                        artifact_format=TSVTaxonomyDirectoryFormat)
 plugin.register_semantic_type_to_format(CLASSOProblem, 
                                         artifact_format=CLASSOProblemDirectoryFormat)
 
@@ -49,13 +46,13 @@ plugin.methods.register_function(
            function=regress,
            inputs={'features': FeatureTable[Composition], 
                     'c':ConstraintMatrix,
-                    'taxonomic_tree': TaxaTree
+                    'taxa': FeatureData[Taxonomy]
                     },
            parameters=regress_parameters,
            outputs= [('result',CLASSOProblem)],
            input_descriptions={'features': 'Matrix representing the data of the problem',
                                 'c': 'Constraint matrix, default is the zero-sum',
-                                'taxonomic_tree':'Taxonomic table in order to build matrix A and then change the problem to the new formulation (with log(X)A instead of log(X))'
+                                'taxa':'Taxonomic table in order to build matrix A and then change the problem to the new formulation (with log(X)A instead of log(X))'
                                 },
            parameter_descriptions=regress_parameter_descriptions,
            output_descriptions= {
@@ -70,10 +67,10 @@ plugin.methods.register_function(
 
 plugin.methods.register_function(
            function=generate_data,
-           inputs={},
+           inputs={'taxa':FeatureData[Taxonomy]},
            parameters={'n':Int, 'd':Int, 'd_nonzero':Int},
            outputs= [('x',FeatureTable[Composition]),('c',ConstraintMatrix)],
-           input_descriptions={},
+           input_descriptions={'taxa' : 'Taxonomy of the data. If it is given, it will generate random data associated to this'},
            parameter_descriptions={'n': 'number of sample', 'd': 'number of features','d_nonzero': 'number of non nul componants in beta' },
            output_descriptions= {'x': 'Matrix representing the data of the problem','c':'Matrix representing the constraint of the problem'},
            name='generate_data',
@@ -119,9 +116,61 @@ def _1(ff : ZarrProblemFormat) -> zarr.hierarchy.Group :
 
 
 
+
+@plugin.register_transformer
+def _2(obj : np.ndarray) -> ConstraintDirectoryFormat :
+    # for C in generate data, or generate constraint
+    ff = ConstraintDirectoryFormat()
+    filename = str(ff.path/'cmatrix.zip')
+    zarr.save(filename, obj)
+    return ff
+
+
+@plugin.register_transformer
+def _3(obj : ConstraintFormat) -> np.ndarray : 
+    # for C in regress
+    return zarr.load(str(obj))
+
+
+
+@plugin.register_transformer
+def _4(ff: TSVTaxonomyFormat) -> skbio.TreeNode:
+    # transformer for taxa tree 
+    root = skbio.TreeNode('root', length=0)
+    line = 0
+    with ff.open() as fh:
+        reader = iter(csv.reader(fh, delimiter='\t'))
+        next(reader)  # skip header
+        for row in reader:
+            id_, taxonomy = row[:2]
+            taxonomy = taxonomy.split(';')
+            node = root
+            for taxon in taxonomy:
+                new = True
+                if taxon[0]==' ': tax = taxon[1:]
+                else : tax = taxon
+
+                for child in node.children:
+                    if child.name == tax:
+                        node = child
+                        new = False
+                        break
+                if new :
+                     child = skbio.TreeNode(tax, length=1)
+                     node.append(child)
+                     node = child
+                
+
+            node.append(skbio.TreeNode('Beta%i'%line, length=1))
+            line += 1
+
+    return root
+
+
+'''
 @plugin.register_transformer
 def _2(obj : np.ndarray) -> BIOMV210Format :
-    # for X in generate data, or generate constraint
+    # for generate X
     ff = BIOMV210Format()
     l1, l2 = [str(i) for i in range(len(obj[0]))],[str(i) for i in range(len(obj))]
     data = biom.Table(obj.T,observation_ids=l1,sample_ids=l2)
@@ -129,7 +178,7 @@ def _2(obj : np.ndarray) -> BIOMV210Format :
         data.to_hdf5(fh, generated_by='qiime2 %s' % version)
     return ff
 
-'''
+
 @plugin.register_transformer
 def _3(ff: BIOMV210Format) -> np.ndarray:
     # for X in regress
@@ -141,50 +190,3 @@ def _3(ff: BIOMV210Format) -> np.ndarray:
     data = pd.DataFrame(array, index=sample_ids, columns=feature_ids)
     return array
 '''
-
-
-
-
-
-@plugin.register_transformer
-def _4(obj : np.ndarray) -> ConstraintDirectoryFormat :
-    # for C in generate data, or generate constraint
-    ff = ConstraintDirectoryFormat()
-    filename = str(ff.path/'cmatrix.zip')
-    zarr.save(filename, obj)
-    return ff
-
-
-@plugin.register_transformer
-def _5(obj : ConstraintFormat) -> np.ndarray : 
-    # for C in regress
-    return zarr.load(str(obj))
-
-
-
-@plugin.register_transformer
-def _6(ff: TSVTaxonomyFormat) -> skbio.TreeNode:
-    # transformer for phylogenetic tree 
-    root = skbio.TreeNode('root', length=0)
-    with ff.open() as fh:
-        reader = iter(csv.reader(fh, delimiter='\t'))
-        next(reader)  # skip header
-        for row in reader:
-            id_, taxonomy = row[:2]
-            taxonomy = taxonomy.split(';')
-            node = root
-            for taxon in taxonomy:
-                for child in node.children:
-                    if child.name == taxon:
-                        node = child
-                        break
-                else:
-                    child = skbio.TreeNode(taxon, length=1)
-                    node.append(child)
-                    node = child
-
-            node.append(skbio.TreeNode(id_, length=1))
-
-    return root
-
-

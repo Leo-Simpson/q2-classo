@@ -15,7 +15,6 @@ from scipy.special import erfinv
 '''functions required in solver : 
 rescale, theoretical_lam, min_LS, affichage, check_size, tree_to_matrix 
 '''
-import skbio
 
 
 def rescale(matrices):
@@ -115,30 +114,39 @@ def check_size(X,y,C):
 
     return X2,y2,C2
 
-def tree_to_matrix(tree,label):
+def tree_to_matrix(tree,label, with_repr = False):
     # to do here : given a skbio tree and the beta-labels in a given order, return the matrix A and the new labels corresponding
     dicti = dict()
     d = len(label)
+    LEAVES = [tip.name for tip in tree.tips()]
     for i in range(d): 
-        name_leave = label[i]
-        dicti[name_leave] = np.zeros(d)
-        dicti[name_leave][i] = 1
-        try:
-            ANCEST = [node.name for node in tree.find(name_leave).ancestors()]
-            
+        name_leaf = label[i]
+        dicti[name_leaf] = np.zeros(d)
+        dicti[name_leaf][i] = 1
+        if name_leaf in LEAVES :
+            ANCEST = [node.name for node in tree.find(name_leaf).ancestors()]
             for ancest in ANCEST : 
-                if not ancest in dicti : dicti[ancest] = np.zeros(d)
-                dicti[ancest][i] = 1    
-        except MissingNodeError : 
-            print("Label %s is not in the tree" % name_leave )
+                if ancest[-1] != '_' : 
+                    if not ancest in dicti : dicti[ancest] = np.zeros(d)
+                    dicti[ancest][i] = 1
 
-    
-    L,label2 = [], []
-    for (name,array) in dicti.items():
-        L.append(array)
-        label2.append(name)
 
-    return np.array(L).T , np.array(label2)
+    L,label2, tree_repr = [], [], []
+    for node in tree.levelorder():
+        nam = node.name
+        if nam in dicti : 
+            label2.append(nam)
+            L.append(dicti[nam])
+
+    if with_repr : 
+
+        for n,l in tree.to_taxonomy():
+            nam = n.name
+            if nam in label : 
+                tree_repr.append( (nam, l) )
+
+
+    return np.array(L).T , np.array(label2), tree_repr
 
 
 
@@ -147,7 +155,7 @@ random_data, csv_to_mat, mat_to_np, clr, theoretical_lam, to_zarr
 '''
 
 
-def random_data(n,d,d_nonzero,k,sigma,zerosum=False,seed=False, classification = False, exp = False):
+def random_data(n,d,d_nonzero,k,sigma,zerosum=False,seed=False, classification = False, exp = False, A = None):
     ''' Generation of random matrices as data such that y = X.sol + sigma. noise
 
     The data X is generated as a normal matrix
@@ -165,6 +173,7 @@ def random_data(n,d,d_nonzero,k,sigma,zerosum=False,seed=False, classification =
         zerosum (bool, optional) : If True, then C is the all-one matrix with 1 row, independently of k
         seed (bool or int, optional) : Seed for random values, for an equal seed, the result will be the same. If set to False: pseudo-random vectors
         classification (bool, optional) : if True, then it returns sign(y) instead of y
+        A (numpy.ndarray) : matrix corresponding to a taxa tree, if it is given, then the problem should be y = X.A.g + eps , C.A.g = 0
 
     Returns:
         tuple : tuple of three ndarray that corresponds to the data :  (X,C,y)
@@ -173,26 +182,35 @@ def random_data(n,d,d_nonzero,k,sigma,zerosum=False,seed=False, classification =
     if (type(seed) == int): np.random.seed(seed)
     else : np.random.seed()
     X= np.random.randn(n,d)
+
+    if A is None: A = np.eye(d)
+    d1= len(A[0])
+
+    sol, sol_reduc,list_i = np.zeros(d1), np.random.randint(-10,11,d_nonzero),np.random.randint(d1, size=d_nonzero)
+    
     if (zerosum): C,k = np.ones((1,d)),1
     else :
         if (k==0):
-            sol, sol_reduc,list_i = np.zeros(d), np.random.randint(-10,11,d_nonzero),np.random.randint(d, size=d_nonzero)
             sol[list_i]=sol_reduc
-            y = X.dot(sol)+np.random.randn(m)*sigma
-            return((X,np.zeros((0,d)),y),sol)
+            y = X.dot(A.dot(sol))+np.random.randn(m)*sigma
+            return((X,np.zeros((0,d1)),y),sol)
+
         while True :        
             C = np.random.randint(low=-1,high=1, size=(k, d))
             if (LA.matrix_rank(C)==k): break
+
+
     while True:
-        sol, sol_reduc = np.zeros(d), np.random.randint(-10,11,d_nonzero)
-        list_i = np.random.randint(d, size=d_nonzero)
-        C_reduc = np.array([C.T[i] for i in list_i]).T
-        if (LA.matrix_rank(C_reduc)<k): continue
+        # building a sparse solution such that C.A sol = 0
+        C_reduc = C.dot(A)[:,list_i]
+        if (LA.matrix_rank(C_reduc)<k): 
+            list_i = np.random.randint(d1, size=d_nonzero)
+            continue
         proj = proj_c(C_reduc,d_nonzero).dot(sol_reduc)
-        for i in range(len(list_i)):
-            sol[list_i[i]]=proj[i]
+        sol[list_i]=proj           
         break
-    y = X.dot(sol)+np.random.randn(n)*sigma
+
+    y = X.dot(A.dot(sol))+np.random.randn(n)*sigma
     if classification : y = np.sign(y)
     if exp : return (np.exp(X), C, y), sol
     return (X,C,y),sol 
@@ -266,10 +284,12 @@ def to_zarr(obj,name,root, first=True):
          root.attrs[name] = int(obj)
          
     elif type(obj)== list : 
-        to_zarr(np.array(obj),name,root,first=False)
+        if name=='tree' : root.attrs[name] = obj
+        else : to_zarr(np.array(obj),name,root,first=False)
     
     elif obj is None or type(obj) in [str,bool,float,int]:
         root.attrs[name] = obj
+
 
     else :
         to_zarr(obj.__dict__,name,root,first=first)

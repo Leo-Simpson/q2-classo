@@ -1,5 +1,18 @@
 {% extends "tab-child.html" %}
 
+
+{% block head %}
+<style media="screen">
+    iframe {
+        height: 20vh;
+        width: 100%;
+        border: none;
+    }
+</style>
+{% endblock %}
+
+
+
 {% block content %}
 {% if stabsel %}
 <div class="row">
@@ -40,8 +53,17 @@
             {% endif %}
             <h3>Beta-solution after refit </h3>
             <img src="stabsel-refit.png">
+            
+            {% if dico.with_tree %}
+            <h3>Selected parameters on the taxonomic tree </h3>
+            <iframe src="./StabSel-tree.html"></iframe>
+            {% endif %}
+
+
     </div>
 </div>
+
+
 
 
 {% endif %}

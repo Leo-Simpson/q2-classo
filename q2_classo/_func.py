@@ -10,13 +10,12 @@ import pandas as pd
 import skbio
 
 
-
 def regress(
             features : pd.DataFrame,
             y : qiime2.NumericMetadataColumn,
             c : np.ndarray  = None,
             do_clr : bool = True,
-            taxonomic_tree : skbio.TreeNode = None,
+            taxa: skbio.TreeNode = None,
             #PATH parameters :
             path : bool = True,
             path_numerical_method : str         = 'not specified',
@@ -67,7 +66,8 @@ def regress(
     else : 
         Features = features.values
 
-    problem = classo_problem(Features, Y , C = c, rescale=rescale, Tree = taxonomic_tree, label = list(features.columns) )
+
+    problem = classo_problem(Features, Y , C = c, rescale=rescale, Tree = taxa, label = list(features.columns) )
     problem.formulation.huber       = huber
     problem.formulation.concomitant = concomitant
     problem.formulation.rho         = rho
@@ -120,12 +120,28 @@ def regress(
     return problem
     
 
-def generate_data(n : int = 100,
-                  d : int = 150,
+def generate_data(taxa : skbio.TreeNode = None,
+                  n : int = 100,
+                  d : int = 80,
                   d_nonzero : int = 5
-                    ) -> (np.ndarray, np.ndarray) :
+                    ) -> (pd.DataFrame, np.ndarray) :
 
-    (X,C,y),sol = random_data(n,d,d_nonzero,0,0.5,zerosum=True,seed= 4, exp = True)
+    
+    label = np.array(['A'+str(i) for i in range(d//2)]+['B'+str(i) for i in range(d-d//2)])
+    label_gamma = label[:]
+    A = None
+    if not taxa is None :
+        label2 = np.array([tip.name for tip in taxa.tips()] )
+        if len(label2 ) >= d : label = label2[:d]
+        else : label[:len(label2)] = label2
+        A, label_gamma ,_ = tree_to_matrix(taxa,label)
+
+    (X,C,y),sol = random_data(n,d,d_nonzero,0,0.5,zerosum=True,seed= 4, exp = True, A=A)
+
+    print( label_gamma[ sol != 0 ] )
+
+
+    dfx = pd.DataFrame(data = X, index = [str(i) for i in range(len(X))] ,columns = label)
     pd.DataFrame(data={'id':range(len(y)),'col':y}).to_csv("randomy.tsv",sep='\t',index=False)
-    return X, C
+    return dfx, C
 

@@ -6,6 +6,7 @@ import numpy as np
 import q2templates
 import shutil
 import matplotlib.pyplot as plt
+from .._tree import make_lists_tree
 from ..CLasso.misc_functions import influence, colo
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -25,20 +26,26 @@ def summarize(output_dir: str, problem : zarr.hierarchy.Group):
     cv_template = os.path.join(assets, 'cv.html')
     stabsel_template = os.path.join(assets, 'stabsel.html')
     lam_fixed_template = os.path.join(assets, 'lam-fixed.html')
+    
     templates = [index, overview_template, path_template, cv_template, stabsel_template, lam_fixed_template]
+    
     q2templates.render(templates, output_dir, context=context)
     
 
 
 def build_context(output_dir,problem):
 
-    labels = problem['data/label']
+    labels = np.array(problem['data/label'])
     features = pd.DataFrame(problem['data/X'],columns=labels)
     y = pd.DataFrame({'y':problem['data/y']})
     c = pd.DataFrame(problem['data/C'], columns = labels)
+    tree = problem['data'].attrs['tree']
+    
+
     features.to_csv(os.path.join(output_dir, 'features.csv'),header=True, index=False)
     y.to_csv(os.path.join(output_dir, 'samples.csv'),header=True, index=False)
     c.to_csv(os.path.join(output_dir, 'constraints.csv'),header=True, index=False)
+
 
     context = {
         'path': False,'cv': False,'stabsel':False,'lam' : False,
@@ -48,12 +55,17 @@ def build_context(output_dir,problem):
     dico = {
         'formulation':name_formulation(problem['formulation'].attrs.asdict(),output_dir),
         'concomitant': problem['formulation'].attrs['concomitant'],
+        'with_tree' : not tree is None,
+        'tree'  : tree,
         'n' : len(problem['data/X']),
         'd' : len(problem['data/X'][0]),
         'k' : len(problem['data/C'])
     }
-    context['dico']=dico
 
+    
+    plot_tree(tree,output_dir, 'tree.html')
+
+    context['dico']=dico
     dico_ms = problem['model_selection'].attrs.asdict()
 
     if dico_ms['PATH']:
@@ -105,6 +117,7 @@ def build_context(output_dir,problem):
         selected_param = np.array(problem['solution/StabSel/selected_param'])
         stability_support = stability[selected_param]
         
+        plot_tree( tree,output_dir, 'StabSel-tree.html', selected_labels = labels[selected_param] )
 
         dico_stabsel['nsel']=len(stability_support)
         dico_stabsel['htmlstab']=q2templates.df_to_html(stability_support, index=False)
@@ -207,8 +220,8 @@ def plot_cv(xGraph, yGraph,index_1SE, index_min,SE, output_dir, name):
     ax = fig.subplots()
 
     mse_max = 10*SE[index_min]
-    for j in range(index_1SE - 3):
-        if (yGraph[j] < mse_max): break
+    j = 0
+    while ( j < index_1SE - 30 and yGraph[j] > mse_max) : j+=1
 
     ax.errorbar(xGraph[j:], yGraph[j:], SE[j:], label='mean over the k groups of data', errorevery = 10 )
     ax.axvline(x=xGraph[index_min], color='k', label=r'$\lambda$ (min MSE)')
@@ -225,7 +238,7 @@ def plot_stability(distribution, selected_param, threshold, method, labels, outp
     fig = plt.figure()
     ax = fig.subplots()
 
-    D, selected = np.array(distribution), selected_param
+    D, selected = np.array(distribution), np.array(selected_param)
     unselected = [not i for i in selected]
     Dselected, Dunselected  = np.zeros(len(D)), np.zeros(len(D))
     Dselected[selected], Dunselected[unselected] = D[selected], D[unselected]
@@ -235,7 +248,7 @@ def plot_stability(distribution, selected_param, threshold, method, labels, outp
     ax.axhline(y=threshold, color='g',label='Threshold : thresh = '+ str(threshold))
 
     ax.set_xticks(np.where(selected_param)[0])
-    ax.set_xticklabels(np.array(labels)[selected_param], rotation=30)
+    ax.set_xticklabels(labels[selected_param], rotation=30)
     
     ax.set_xlabel(r"Coefficient index $i$")
     ax.set_ylabel(r"Selection probability ")
@@ -269,4 +282,110 @@ def plot_stability_path(lambdas, D_path, selected, threshold,method,output_dir,n
 
 
     fig.savefig(os.path.join(output_dir, name))
+
+
+
+from plotly import graph_objects as go 
+from plotly import offline
+
+def plot_tree(tree,directory, name, selected_labels = None ) : 
+
+    position, Edges, labels_nodes = make_lists_tree(tree)
+    
+    M = max(position[:,1])
+    position[:,1] = 2*M - position[:,1]
+    
+    Xe, Ye = [], []
+    for edge in Edges:
+        Xe+=[position[edge[0],0],position[edge[1],0], None]
+        Ye+=[position[edge[0],1],position[edge[1],1], None]
+
+
+    selected = np.array([False]*len(position))
+
+    if not selected_labels is None : 
+        for i in range(len(position)):
+            if labels_nodes[i] in selected_labels: selected[i] = True
+        
+    unselected = np.array([not i for i in selected ])
+
+
+    fig = go.Figure()
+
+    #plot the edges
+    fig.add_trace(go.Scatter(x=Xe,
+                    y=Ye,
+                    mode='lines',
+                    line=dict(color='rgb(210,210,210)', width=1),
+                    hoverinfo='none'
+                    ))
+
+    #plot the nodes not selected
+    fig.add_trace(go.Scatter(x=position[unselected,0],
+                    y=position[unselected,1],
+                    mode='markers',
+                    name='nodes',
+                    marker=dict(symbol='circle-dot',
+                                    size=18,
+                                    color='blue',    #'#DB4551',
+                                    line=dict(color='black', width=1)
+                                    ),
+                    text=labels_nodes[unselected] ,
+                    hoverinfo='text',
+                    opacity=0.8
+                    ))
+
+    #plot the nodes selected
+    fig.add_trace(go.Scatter(x=position[selected,0],
+                    y=position[selected,1],
+                    mode='markers',
+                    name='nodes',
+                    marker=dict(symbol='circle-dot',
+                                    size=18,
+                                    color='red',    #'#DB4551',
+                                    line=dict(color='black', width=1)
+                                    ),
+                    text=labels_nodes[selected] ,
+                    hoverinfo='text',
+                    opacity=0.8
+                    ))
+    
+
+    axis = dict(showline=True, # hide axis line, grid, ticklabels and  title
+            zeroline=True,
+            showgrid=True,
+            showticklabels=True,
+            )
+
+    fig.update_layout(title= 'Taxonomic tree',
+              annotations=make_annotations(position, [ name[0] for name in labels_nodes ]),
+              font_size=12,
+              showlegend=False,
+              xaxis=axis,
+              yaxis=axis,
+              margin=dict(l=40, r=40, b=85, t=100),
+              hovermode='closest',
+              plot_bgcolor='rgb(248,248,248)'
+              )
+
+    offline.plot(fig, filename = os.path.join(directory, name), auto_open=False)
+
+
+def make_annotations(pos, lab, font_size=10, font_color='rgb(250,250,250)'):
+    annotations = []
+    for k in range(len(pos)):
+        annotations.append(
+            dict(
+                text=lab[k], # text within the circles
+                x=pos[k,0], y=pos[k,1],
+                xref='x1', yref='y1',
+                font=dict(color=font_color, size=font_size),
+                showarrow=False)
+        )
+    return annotations
+
+
+
+
+
 
