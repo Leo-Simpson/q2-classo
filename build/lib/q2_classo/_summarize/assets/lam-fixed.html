@@ -1,5 +1,17 @@
 {% extends "tab-child.html" %}
 
+{% block head %}
+<style media="screen">
+    iframe.frame {
+        height: 500px;
+        width: 100%;
+        border: none;
+    }
+</style>
+{% endblock %}
+
+
+
 {% block content %}
 {% if stabsel %}
 <div class="row">
@@ -27,9 +39,16 @@
             {{dicolam.htmlbeta}}
             <h4><a href="LAM-beta.csv">Download beta solution after refit as CSV</a></h4>  
         </table>
-        <img src="lam-refit.png">
+        <div>
+            <iframe src="./lam-refit.html" class = "frame" ></iframe>
+        </div>
+
+
         <h3>Beta-solution before refit </h3>
-            <img src="lam-beta.png">
+            <div>
+                <iframe src="./lam-beta.html" class = "frame" ></iframe>
+            </div>
+
 
     </div>
 </div>

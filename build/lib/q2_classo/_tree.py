@@ -8,27 +8,28 @@ def make_lists_tree(taxa_table):
 
     POS, E, LAB = [], [], []
 
-    def add(x, y, node, dx : float ):
+    def add(tet, r, node, dtet : float, circular = False ):
         current_index = len(POS)
-        POS.append([x,y])
+        if circular : POS.append(from_polaire(r,tet))
+        else : POS.append([tet,r])
         LAB.append(node.name)
         CHILDREN = node.children
         n = len(CHILDREN)
         if (n>0) : 
-            step = dx / n
-            x_new = x - dx - step
+            step = dtet / n
+            tet_new = tet - dtet - step
             for i in range(n)  : 
-                x_new = x_new + 2*step
+                tet_new = tet_new + 2*step
                 E.append([current_index, len(POS)])
-                add(x_new,y+1,CHILDREN[i], step)
+                add(tet_new,r+1,CHILDREN[i], step)
         
-    add(0.,0.,sktree, 10.)
+    add(0.,0.,sktree, np.pi)
     for i in range(len(LAB)):
         if LAB[i] is None : LAB[i] = 'None'
         if LAB[i][-1] == '_' : remove(POS,E,LAB,i)
 
 
-    return np.array(POS), E, np.array(LAB)
+    return -np.array(POS), E, np.array(LAB)
 
 
 
@@ -45,3 +46,7 @@ def remove(POS,E,LAB, i ):
         if c[0]==i : c[0] = pred
 
 
+def from_polaire(r,tet):
+    x = r*np.cos(tet)
+    y = r*np.sin(tet)
+    return [x,y]

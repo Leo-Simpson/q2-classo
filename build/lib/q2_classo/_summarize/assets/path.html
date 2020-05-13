@@ -1,5 +1,16 @@
 {% extends "tab-child.html" %}
 
+{% block head %}
+<style media="screen">
+    iframe.frame {
+        height: 500px;
+        width: 100%;
+        border: none;
+    }
+</style>
+{% endblock %}
+
+
 {% block content %}
 {% if path %}
 <div class="row">
@@ -22,10 +33,14 @@
         </table>
         <h3>Beta-path</h3>
         <h4><a href="path.csv">Download beta/lambda path as csv</a></h4>  
-            <img src="beta-path.png"> 
+        <div>
+            <iframe src="./beta-path.html" class = "frame" ></iframe>
+        </div>
         {% if dico.concomitant %}
             <h3>Sigma-path</h3>
-                <img src="sigma-path.png">
+            <div>
+                <iframe src="./sigma-path.html" class = "frame" ></iframe>
+            </div>
 
         {% endif %}
         

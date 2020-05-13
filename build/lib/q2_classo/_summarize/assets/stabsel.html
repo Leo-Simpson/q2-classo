@@ -3,8 +3,8 @@
 
 {% block head %}
 <style media="screen">
-    iframe {
-        height: 20vh;
+    iframe.frame {
+        height: 700px;
         width: 100%;
         border: none;
     }
@@ -35,6 +35,7 @@
     </div>
 </div>
 
+
 <div class="row">
     <div class="col-lg-12">
         <h1>Solution</h1>
@@ -46,17 +47,18 @@
         <h2>Stability Selection profile</h2>
             {{dicostabsel.htmlstab}}
             <h4><a href="StabSel-prob.csv">Download stability selection profile as CSV</a></h4>
-            <img src="stabsel-graph.png">  
+            <iframe src="./stabSel-graph.html" class="frame"></iframe>
+
             {% if dicostabsel.with_path %}
                 <h3>Stabiliy Selection profile over lambdas path </h3>
-                <img src="stabsel-path.png"> 
+                <iframe src="./stabSel-path.html" class="frame"></iframe>
             {% endif %}
             <h3>Beta-solution after refit </h3>
-            <img src="stabsel-refit.png">
+            <iframe src="./stabSel-refit.html" class="frame"></iframe>
             
             {% if dico.with_tree %}
             <h3>Selected parameters on the taxonomic tree </h3>
-            <iframe src="./StabSel-tree.html"></iframe>
+            <iframe src="./StabSel-tree.html" class="frame"></iframe>
             {% endif %}
 
 

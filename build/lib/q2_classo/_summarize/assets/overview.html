@@ -3,8 +3,8 @@
 
 {% block head %}
 <style media="screen">
-    iframe {
-        height: 100vh;
+    iframe.frame {
+        height: 700px;
         width: 100%;
         border: none;
     }
@@ -40,7 +40,7 @@
 
 {% if dico.with_tree %}
     <div>
-        <iframe src="./tree.html"></iframe>
+        <iframe src="./tree.html" class =  "frame"></iframe>
     </div>
 {% endif %}
 
