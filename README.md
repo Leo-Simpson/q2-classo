@@ -13,12 +13,22 @@ https://docs.qiime2.org/2020.2/install/native/#install-qiime-2-within-a-conda-en
 source activate qiime2-2020.2
 ```
 
-PS : it is possible that after this, one might need to do as well :
-```shell
-conda install zarr
-```
+#### The plugin depends on the packages : 
 
+- zarr 
+- skbio
+- plotly
+- the packages required for CLasso
 
+#### To find an example of taxonomy : 
+
+For example, in the qiime2 tutorial of the parkinson mouse : 
+
+https://docs.qiime2.org/2020.2/tutorials/pd-mice/
+
+at the section "Taxonomic classification", a file called taxonomy.qza can be downloaded, which is a FeatureData[Taxonomy]. 
+
+One can use this taxonomy and build random data "with respect to this taxonomy". 
 
 
 #### Push the python code into qiime
@@ -30,12 +40,21 @@ qiime dev refresh-cache
 
 #### Build random data 
 ```shell
-qiime classo generate-data --o-x randomx.qza --o-c randomc.qza
+qiime classo generate-data \
+  --i-taxa taxonomy.qza \
+  --o-x randomx.qza \
+  --o-c randomc.qza
 ```
 
 #### Apply regress to those random data
 ```shell
-qiime classo regress --i-features randomx.qza --i-c randomc.qza --m-y-file randomy.tsv --m-y-column col --o-result problem.qza
+qiime classo regress \
+  --i-taxa taxonomy.qza\
+  --i-features randomx.qza\
+  --i-c randomc.qza\
+  --m-y-file randomy.tsv\
+  --m-y-column col\
+  --o-result problem.qza
 ```
 
 #### Make a visualizer of the solution
