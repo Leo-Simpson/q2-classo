@@ -357,7 +357,6 @@ def remove_same_vect(L , label, order):
         new_j = label.index(order[i+1])
         new_col = L[new_j]
         if np.array_equal(col,new_col) : 
-            print("Remove the colomn of ", label[new_j])
             to_keep[new_j]=False
         else : j, col = new_j, new_col
 

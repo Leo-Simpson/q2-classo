@@ -11,7 +11,6 @@ from plotly import graph_objects, express, offline
 
 
 from .._tree import make_lists_tree
-from ..CLasso.misc_functions import influence, colo
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 assets = os.path.join(dir_path, 'assets')

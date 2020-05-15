@@ -1,5 +1,7 @@
 import numpy as np
-from q2_classo.CLasso import *
+from classo import *
+
+
 from qiime2.plugin import (SemanticType,Plugin, Int, Float, Range, Metadata, Str, Bool,
      Choices, MetadataColumn, Categorical, List,
      Citations, TypeMatch, Numeric)
