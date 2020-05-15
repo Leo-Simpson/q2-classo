@@ -16,6 +16,7 @@ source activate qiime2-2020.2
 #### The plugin depends on the packages : 
 
 - numpy
+- pandas
 - zarr 
 - skbio
 - plotly
