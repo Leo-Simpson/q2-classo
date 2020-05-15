@@ -15,10 +15,11 @@ source activate qiime2-2020.2
 
 #### The plugin depends on the packages : 
 
+- numpy
 - zarr 
 - skbio
 - plotly
-- the packages required for CLasso
+- package c-lasso
 
 #### To find an example of taxonomy : 
 
