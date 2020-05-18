@@ -16,7 +16,7 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 assets = os.path.join(dir_path, 'assets')
 dir_form = os.path.join(dir_path, 'form')
 
-
+colors = {"threshold":"red", "selected":"green", "unselected":"blue"}
 
 
 def summarize(output_dir: str, problem : zarr.hierarchy.Group):
@@ -66,7 +66,7 @@ def build_context(output_dir,problem):
     }
 
     
-    plot_tree(tree,output_dir, 'tree.html')
+    if dico['with_tree'] : plot_tree(tree,output_dir, 'tree.html')
 
     context['dico']=dico
     dico_ms = problem['model_selection'].attrs.asdict()
@@ -120,7 +120,7 @@ def build_context(output_dir,problem):
         selected_param = np.array(problem['solution/StabSel/selected_param'])
         stability_support = stability[selected_param]
         
-        plot_tree( tree,output_dir, 'StabSel-tree.html', selected_labels = labels[selected_param] )
+        if dico['with_tree'] : plot_tree( tree,output_dir, 'StabSel-tree.html', selected_labels = labels[selected_param] )
 
         dico_stabsel['nsel']=len(stability_support)
         dico_stabsel['htmlstab']=q2templates.df_to_html(stability_support, index=False)
@@ -242,9 +242,9 @@ def plot_cv(xGraph, yGraph,index_1SE, index_min,SE, directory, name):
 
 def plot_stability(distribution, selected_param, threshold, method, labels, directory, name):
     data = {'index': range(len(distribution)), "Selection probability": distribution , 'label': labels, 'selected':selected_param }
-    fig = express.bar(data, x='index', y="Selection probability", hover_data=['selected','label'], color='selected')
+    fig = express.bar(data, x='index', y="Selection probability", hover_data=['selected','label'], color='selected',color_discrete_map={True:colors["selected"],False:colors["unselected"]})
     fig.update_layout(shapes=[
-                    dict(type= 'line', y0= threshold, y1= threshold, x0= 0, x1= len(distribution),line_color="green" )  
+                    dict(type= 'line', y0= threshold, y1= threshold, x0= 0, x1= len(distribution),line_color=colors["threshold"] )  
                             ])
     offline.plot(fig, filename = os.path.join(directory, name), auto_open=False)
 
@@ -254,9 +254,9 @@ def plot_stability_path(lambdas, D_path, selected, threshold,method,labels,direc
     data = { "lambda":np.repeat(lambdas,d), "Selection Probability":[],"selected":list(selected)*N,"labels":list(labels)*N}
     for i in range(len(lambdas)):
         data["Selection Probability"].extend(D_path[i])
-    fig = express.line(data, x = "lambda", y = "Selection Probability",color="selected", line_group="labels",hover_name="labels")
+    fig = express.line(data, x = "lambda", y = "Selection Probability",color="selected", line_group="labels",hover_name="labels",color_discrete_map={True:colors["selected"],False:colors["unselected"]})
     fig.update_layout(title = "Stability selection profile across lambda-path with method "+ method, 
-                    shapes=[ dict(type= 'line', y0= threshold, y1= threshold, x0= 0, x1= 1,line_color="green" ) ] 
+                    shapes=[ dict(type= 'line', y0= threshold, y1= threshold, x0= 0, x1= 1,line_color=colors["threshold"] ) ] 
                             )
     offline.plot(fig, filename = os.path.join(directory, name), auto_open=False)
 
@@ -300,7 +300,7 @@ def plot_tree(tree,directory, name, selected_labels = None ) :
                     name='nodes',
                     marker=dict(symbol='circle-dot',
                                     size=18,
-                                    color='blue',    #'#DB4551',
+                                    color=colors["unselected"],    #'#DB4551',
                                     line=dict(color='black', width=1)
                                     ),
                     text=labels_nodes[unselected] ,
@@ -315,7 +315,7 @@ def plot_tree(tree,directory, name, selected_labels = None ) :
                     name='nodes',
                     marker=dict(symbol='circle-dot',
                                     size=18,
-                                    color='red',    #'#DB4551',
+                                    color=colors["selected"],    #'#DB4551',
                                     line=dict(color='black', width=1)
                                     ),
                     text=labels_nodes[selected] ,

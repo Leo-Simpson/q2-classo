@@ -63,15 +63,38 @@ plugin.methods.register_function(
            #citations=[citations['Weiss2017']]
            )
 
+plugin.methods.register_function(
+           function=classify,
+           inputs={'features': FeatureTable[Composition], 
+                    'c':ConstraintMatrix,
+                    'taxa': FeatureData[Taxonomy]
+                    },
+           parameters=classify_parameters,
+           outputs= [('result',CLASSOProblem)],
+           input_descriptions={'features': 'Matrix representing the data of the problem',
+                                'c': 'Constraint matrix, default is the zero-sum',
+                                'taxa':'Taxonomic table in order to build matrix A and then change the problem to the new formulation (with log(X)A instead of log(X))'
+                                },
+           parameter_descriptions=classify_parameter_descriptions,
+           output_descriptions= {
+               'result':"Directory format that will contain all information about the problem solved"
+               },
+           name='regress',
+           description=("The function computes the constrainted_sparse_regression vector with respect to the formulation of regression that is asked and with respect to the model selection parameters given")
+           #citations=[citations['Weiss2017']]
+           )
+
+
+
 
 
 plugin.methods.register_function(
            function=generate_data,
            inputs={'taxa':FeatureData[Taxonomy]},
-           parameters={'n':Int, 'd':Int, 'd_nonzero':Int},
+           parameters={'n':Int, 'd':Int, 'd_nonzero':Int, 'classification': Bool},
            outputs= [('x',FeatureTable[Composition]),('c',ConstraintMatrix)],
            input_descriptions={'taxa' : 'Taxonomy of the data. If it is given, it will generate random data associated to this'},
-           parameter_descriptions={'n': 'number of sample', 'd': 'number of features','d_nonzero': 'number of non nul componants in beta' },
+           parameter_descriptions={'n': 'number of sample', 'd': 'number of features','d_nonzero': 'number of non nul componants in beta' , 'classification' : 'boolean, if set to True, y will be a vector with only -1 and 1'},
            output_descriptions= {'x': 'Matrix representing the data of the problem','c':'Matrix representing the constraint of the problem'},
            name='generate_data',
            description=("Function that build random data")
@@ -87,6 +110,10 @@ plugin.visualizers.register_function(
     name='Summarize regression solution',
     description=('Summarize the object created by the regression with its characteristics')
 )
+
+
+
+
 
 
 
