@@ -87,18 +87,15 @@ plugin.methods.register_function(
 plugin.methods.register_function(
            function=transform,
            inputs={'features': FeatureTable[Composition], 
-                    'c': ConstraintMatrix,
-                    'y': Metadata,
-                    'to_add': List[Str],
+                    'c': ConstraintMatrix
                     },
-           parameters={},
+           parameters={'y': Metadata, 'to_add': List[Str]},
            outputs= [('new_x',FeatureTable[Composition]), ('new_c', ConstraintMatrix)],
            input_descriptions={'features': 'Matrix representing the data of the problem' , 
-                                'c':'Constraint matrix',
-                                'y': 'output matrix, with several columns, including the one we want to regress on',
-                                'to_add': 'names of columns of y to add to the feature table after having normalized them',
+                                'c':'Constraint matrix'
                                 },
-           parameter_descriptions={},
+           parameter_descriptions={'y': 'output matrix, with several columns, including the one we want to regress on',
+                                    'to_add': 'names of columns of y to add to the feature table after having normalized them'},
            output_descriptions= {
                'new_x': 'Feature table  with new columns taken from y',
                'new_c':'Updated matrix c, with 0 on the new added columns'

@@ -258,7 +258,7 @@ def transform(
     X_new[:,:d] = X
     if c is None : C_new[:,:d] = 1.
     else : C_new[:,:d] = c
-    for i in range len(to_add) :
+    for i in range(len(to_add)) :
         name = to_add[i]
         vect = Y[name].to_numpy() # ???
         

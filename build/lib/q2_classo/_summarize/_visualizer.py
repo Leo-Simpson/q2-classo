@@ -120,7 +120,7 @@ def build_context(output_dir,problem):
         selected_param = np.array(problem['solution/StabSel/selected_param'])
         stability_support = stability[selected_param]
         
-        plot_tree( tree,output_dir, 'StabSel-tree.html', selected_labels = labels[selected_param] )
+        if dico['with_tree'] : plot_tree( tree,output_dir, 'StabSel-tree.html', selected_labels = labels[selected_param] )
 
         dico_stabsel['nsel']=len(stability_support)
         dico_stabsel['htmlstab']=q2templates.df_to_html(stability_support, index=False)
@@ -165,20 +165,29 @@ def build_context(output_dir,problem):
 
 
 def name_formulation(dictio,output_dir):
-    if dictio['concomitant']:
-        if dictio['huber']:
-            shutil.copy(os.path.join(dir_form, 'R4.png'),os.path.join(output_dir, 'formula.png'))
-            return 'R4 (concomitant and huber with e = '+ str(dictio['e']) +' and rho = '+str(dictio['rho']) +' )'
-        else :
-            shutil.copy(os.path.join(dir_form, 'R3.png'),os.path.join(output_dir, 'formula.png'))
-            return 'R3 (concomitant with e = ' + str(dictio['e']) + ' )'
-    else : 
-        if dictio['huber']:
-            shutil.copy(os.path.join(dir_form, 'R2.png'),os.path.join(output_dir, 'formula.png'))
-            return 'R2 (huber with rho = '+str(dictio['rho']) +' )'
-        else :
-            shutil.copy(os.path.join(dir_form, 'R1.png'),os.path.join(output_dir, 'formula.png'))
-            return 'R1 (classic lasso formulation)'
+    if dictio['classification']:
+        if dictio['concomitant']:
+            shutil.copy(os.path.join(dir_form, 'C2.png'),os.path.join(output_dir, 'formula.png'))
+            return 'C2 (classification and huber with rho = '+str(dictio['rho_classification']) +' )'
+        else : 
+            shutil.copy(os.path.join(dir_form, 'C1.png'),os.path.join(output_dir, 'formula.png'))
+            return 'C1 (classification)'
+        
+    else:
+        if dictio['concomitant']:
+            if dictio['huber']:
+                shutil.copy(os.path.join(dir_form, 'R4.png'),os.path.join(output_dir, 'formula.png'))
+                return 'R4 (concomitant and huber with e = '+ str(dictio['e']) +' and rho = '+str(dictio['rho']) +' )'
+            else :
+                shutil.copy(os.path.join(dir_form, 'R3.png'),os.path.join(output_dir, 'formula.png'))
+                return 'R3 (concomitant with e = ' + str(dictio['e']) + ' )'
+        else : 
+            if dictio['huber']:
+                shutil.copy(os.path.join(dir_form, 'R2.png'),os.path.join(output_dir, 'formula.png'))
+                return 'R2 (huber with rho = '+str(dictio['rho']) +' )'
+            else :
+                shutil.copy(os.path.join(dir_form, 'R1.png'),os.path.join(output_dir, 'formula.png'))
+                return 'R1 (classic lasso formulation)'
 
 
 
@@ -217,11 +226,13 @@ def plot_beta(beta,directory,labels,name,title):
 
 def plot_cv(xGraph, yGraph,index_1SE, index_min,SE, directory, name):
     mse_max, j = 10*SE[index_min], 0
+    jmax = len(yGraph)-1
+    while(yGraph[jmax]>100*yGraph[index_min]) : jmax-=1
     while ( j < index_1SE - 30 and yGraph[j] > mse_max) : j+=1
 
-    y_max = max(yGraph[j:])
+    y_max = max(yGraph[j:jmax])
     fig = graph_objects.Figure()
-    fig.add_trace(graph_objects.Scatter(x=xGraph[j:], y=yGraph[j:], name = "MSE",
+    fig.add_trace(graph_objects.Scatter(x=xGraph[j:jmax], y=yGraph[j:jmax], name = "MSE",
                                 error_y=dict(
                                 type='data', # value of error bar given in data coordinates
                                 array=SE[j:],

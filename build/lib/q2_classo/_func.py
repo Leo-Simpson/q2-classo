@@ -240,6 +240,39 @@ def classify(
 
 
 
+def transform(
+            features : pd.DataFrame,         
+            y : qiime2.Metadata, 
+            to_add : list,
+            c : np.ndarray = None)-> (pd.DataFrame, np.ndarray):
+
+    label = list(features.columns)
+    X = features.values
+    n,d,k = len(X),len(X.T), len(C)
+    Y = y.to_series()  # ???
+
+    norm = np.mean( [ np.linalg.norm(X[:,j]) for j in range(d)]  )
+
+    X_new = np.zeros((n,d+len(to_add))  )
+    C_new = np.zeros((k,d+len(to_add)))
+    X_new[:,:d] = X
+    if c is None : C_new[:,:d] = 1.
+    else : C_new[:,:d] = c
+    for i in range(len(to_add)) :
+        name = to_add[i]
+        vect = Y[name].to_numpy() # ???
+        
+        #if category ? 
+        #   vect = vect==vect[0] # set the vector to true if the value is the 
+        #   vect = 2*vect-1 # transform it to a vector of 1 and -1
+        # else : 
+        vect  = np.exp(  vect/np.linalg.norm(vect) * norm )
+        X_new[:,d+i] =  vect
+        label.append(name)
+    
+    dfx = pd.DataFrame(data = X_new, index = [str(i) for i in range(n)] ,columns = label)
+
+    return dfx, C_new
 
 
 
@@ -277,9 +310,9 @@ def generate_data(taxa : skbio.TreeNode = None,
         else : label[:len(label2)] = label2
         A, label_gamma ,_ = tree_to_matrix(taxa,label)
 
-    (X,C,y),sol = random_data(n,d,d_nonzero,0,0.5,zerosum=True,seed= 4, exp = True, A=A,classification = classification)
+    (X,C,y),sol = random_data(n,d,d_nonzero,0,0.5,zerosum=True,seed= None, exp = True, A=A,classification = classification)
 
-    #print( label_gamma[ sol != 0 ] )
+    print( label_gamma[ sol != 0 ] )
     if classification : y = y==1.
 
     dfx = pd.DataFrame(data = X, index = [str(i) for i in range(len(X))] ,columns = label)
