@@ -240,6 +240,34 @@ def classify(
 
 
 
+def transform(
+            features : pd.DataFrame,         
+            y : qiime2.Metadata, 
+            to_add : list,
+            c : np.ndarray = None)-> (pd.DataFrame, np.ndarray):
+
+    label = list(features.columns)
+    X = features.values
+    n,d,k = len(X),len(X.T), len(C)
+    Y = y.to_series()  # ???
+
+    norm = np.mean( [ np.linalg.norm(X[:,j]) for j in range(d)]  )
+
+    X_new = np.zeros((n,d+len(to_add))  )
+    C_new = np.zeros((k,d+len(to_add)))
+    X_new[:,:d] = X
+    if c is None : C_new[:,:d] = 1.
+    else : C_new[:,:d] = c
+    for i in range len(to_add) :
+        name = to_add[i]
+        vect = Y[name].to_numpy() # ???
+
+        X_new[:,d+i] = np.exp(  vect/np.linalg.norm(vect) * norm ) 
+        label.append(name)
+    
+    dfx = pd.DataFrame(data = X_new, index = [str(i) for i in range(n)] ,columns = label)
+
+    return dfx, C_new
 
 
 
