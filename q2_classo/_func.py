@@ -262,11 +262,12 @@ def transform(
         name = to_add[i]
         vect = Y[name].to_numpy() # ???
         
-        #if catogry ? 
+        #if category ? 
         #   vect = vect==vect[0] # set the vector to true if the value is the 
         #   vect = 2*vect-1 # transform it to a vector of 1 and -1
-
-        X_new[:,d+i] = np.exp(  vect/np.linalg.norm(vect) * norm ) 
+        # else : 
+        vect  = np.exp(  vect/np.linalg.norm(vect) * norm )
+        X_new[:,d+i] =  vect
         label.append(name)
     
     dfx = pd.DataFrame(data = X_new, index = [str(i) for i in range(n)] ,columns = label)
