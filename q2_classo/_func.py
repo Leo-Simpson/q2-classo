@@ -240,33 +240,42 @@ def classify(
 
 
 
-def transform(
+def add_covariates(
             features : pd.DataFrame,         
-            y : qiime2.Metadata, 
-            to_add : list,
+            covariates : qiime2.Metadata, 
+            to_add : str,
             c : np.ndarray = None)-> (pd.DataFrame, np.ndarray):
 
     label = list(features.columns)
     X = features.values
     n,d,k = len(X),len(X.T), len(C)
-    Y = y.to_series()  # ???
+    
 
-    norm = np.mean( [ np.linalg.norm(X[:,j]) for j in range(d)]  )
+
+    norm = np.mean( [ np.linalg.norm(X[:,j]) for j in range(d)]  ) # not sure here, maybe set it to 1 instead
 
     X_new = np.zeros((n,d+len(to_add))  )
     C_new = np.zeros((k,d+len(to_add)))
     X_new[:,:d] = X
     if c is None : C_new[:,:d] = 1.
     else : C_new[:,:d] = c
-    for i in range(len(to_add)) :
-        name = to_add[i]
-        vect = Y[name].to_numpy() # ???
+
+    covariates = covariates.filter_columns(column_type='numeric')
+
+    for i, name in enumerate(to_add):
+        #vect = Y[name].to_numpy() # ???
+        try:
+            col = covariates.get_column(name)
+        except ValueError:
+            raise ValueError("Column %r is not numeric or available in the"
+                             " metadata" % name)
+        vect = col.to_series().to_numpy()
         
         #if category ? 
         #   vect = vect==vect[0] # set the vector to true if the value is the 
         #   vect = 2*vect-1 # transform it to a vector of 1 and -1
         # else : 
-        vect  = np.exp(  vect/np.linalg.norm(vect) * norm )
+        vect  = np.exp(  vect/np.linalg.norm(vect) * norm )   # we take the exp because then in regress or classify, we take the log
         X_new[:,d+i] =  vect
         label.append(name)
     

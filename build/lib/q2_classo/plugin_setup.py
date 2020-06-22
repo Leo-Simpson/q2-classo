@@ -85,24 +85,23 @@ plugin.methods.register_function(
            )
 
 plugin.methods.register_function(
-           function=transform,
+           function=add_covariates,
            inputs={'features': FeatureTable[Composition], 
                     'c': ConstraintMatrix
                     },
-           parameters={'y': Metadata, 'to_add': List[Str]},
-           outputs= [('new_x',FeatureTable[Composition]), ('new_c', ConstraintMatrix)],
+           parameters={'covariates': Metadata, 'to_add': List[Str]},
+           outputs= [('new_features',FeatureTable[Composition]), ('new_c', ConstraintMatrix)],
            input_descriptions={'features': 'Matrix representing the data of the problem' , 
                                 'c':'Constraint matrix'
                                 },
-           parameter_descriptions={'y': 'output matrix, with several columns, including the one we want to regress on',
+           parameter_descriptions={'covariates': 'output matrix, with several columns, including the one we want to regress on',
                                     'to_add': 'names of columns of y to add to the feature table after having normalized them'},
            output_descriptions= {
-               'new_x': 'Feature table  with new columns taken from y',
+               'new_features': 'Feature table  with new columns taken from y',
                'new_c':'Updated matrix c, with 0 on the new added columns'
                },
-           name='regress',
-           description=("The function computes the constrainted_sparse_regression vector with respect to the formulation of regression that is asked and with respect to the model selection parameters given")
-           #citations=[citations['Weiss2017']]
+           name='add_covariates',
+           description=("Function to add some features that are in the metadata")
            )
 
 
