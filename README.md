@@ -45,12 +45,29 @@ qiime classo generate-data \
   --o-c randomc.qza
 ```
 
+#### CLR transform
+```shell
+qiime classo features-clr \
+  --i-features randomx.qza \
+  --o-x xclr.qza
+```
+
+#### TAXA transform
+```shell
+qiime classo add-taxa \
+  --i-features xclr.qza \
+  --i-taxa taxonomy.qza \
+  --i-c randomc.qza \
+  --o-x xtaxa.qza \
+  --o-ca ctaxa.qza
+```
+
+
 #### Apply regress to those random data
 ```shell
 qiime classo regress \
-  --i-taxa taxonomy.qza\
-  --i-features randomx.qza\
-  --i-c randomc.qza\
+  --i-features xtaxa.qza\
+  --i-c ctaxa.qza\
   --m-y-file randomy.tsv\
   --m-y-column col\
   --o-result problem.qza
@@ -59,6 +76,7 @@ qiime classo regress \
 #### Make a visualizer of the solution
 ```shell
 qiime classo summarize \
+  --i-taxa taxonomy.qza \
   --i-problem problem.qza \
   --o-visualization problem.qzv
 ```
