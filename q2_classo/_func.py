@@ -64,6 +64,7 @@ def add_taxa(features : pd.DataFrame,
     if c is None : C_new = np.ones((1,len(A))).dot(A)
     else : C_new = c.dot(A)
     dfx = pd.DataFrame(data = X_new, index = list(features.index) ,columns = label_new)
+
     return dfx, C_new
 
 
@@ -106,6 +107,8 @@ def add_covariates(features : pd.DataFrame,
         label.append(name)
     
     dfx = pd.DataFrame(data = X_new, index = [str(i) for i in range(n)] ,columns = label)
+
+
 
     return dfx, C_new
 
@@ -162,6 +165,7 @@ def regress(features : pd.DataFrame,
     if do_yshift : Y = Y - np.mean(Y)
     Features = features.values
 
+    print(Features.shape)
 
     problem = classo_problem(Features, Y , C = c, rescale=rescale, label = list(features.columns) )
     problem.formulation.huber       = huber
