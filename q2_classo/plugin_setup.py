@@ -21,7 +21,7 @@ version=qiime2.__version__
 
 plugin = Plugin(
 name='classo',
-                version='0.0.0.dev0',
+version='0.0.0.dev0',
 website='https://github.com/Leo-Simpson/q2-classo',
 package='q2-classo',
 short_description=('Package for constrained sparse regression and classification'),
@@ -39,51 +39,56 @@ plugin.register_semantic_type_to_format(ConstraintMatrix,
 plugin.register_semantic_type_to_format(CLASSOProblem, 
                                         artifact_format=CLASSOProblemDirectoryFormat)
 
-
-
-
+# generate_data
 plugin.methods.register_function(
-           function=regress,
+           function=generate_data,
+           inputs={'taxa':FeatureData[Taxonomy]},
+           parameters={'n':Int, 'd':Int, 'd_nonzero':Int, 'classification': Bool},
+           outputs= [('x',FeatureTable[Composition]),('c',ConstraintMatrix)],
+           input_descriptions={'taxa' : 'Taxonomy of the data. If it is given, it will generate random data associated to this'},
+           parameter_descriptions={'n': 'number of sample', 'd': 'number of features','d_nonzero': 'number of non nul componants in beta' , 'classification' : 'boolean, if set to True, y will be a vector with only -1 and 1'},
+           output_descriptions= {'x': 'Matrix representing the data of the problem','c':'Matrix representing the constraint of the problem'},
+           name='generate_data',
+           description=("Function that build random data")
+           )
+
+
+
+# features_clr 
+plugin.methods.register_function(
+           function=features_clr,
+           inputs={'features': FeatureTable[Composition]},
+           parameters={'coef':Float},
+           outputs= [('x',FeatureTable[Composition])],
+           input_descriptions={'features': 'Matrix representing the data of the problem'},
+           parameter_descriptions={'coef':'Value that should be put instead of zeros in the feature table. Default value is 0.5'},
+           output_descriptions= {'x': 'Matrix representing the data of the problem'},
+           name='features_clr',
+           description=("Perform centered log ration")
+           )
+
+
+# add_taxa
+plugin.methods.register_function(
+           function=add_taxa,
            inputs={'features': FeatureTable[Composition], 
                     'c':ConstraintMatrix,
                     'taxa': FeatureData[Taxonomy]
                     },
-           parameters=regress_parameters,
-           outputs= [('result',CLASSOProblem)],
+           parameters={},
+           outputs= [('x',FeatureTable[Composition]),('c',ConstraintMatrix)],
            input_descriptions={'features': 'Matrix representing the data of the problem',
                                 'c': 'Constraint matrix, default is the zero-sum',
                                 'taxa':'Taxonomic table in order to build matrix A and then change the problem to the new formulation (with log(X)A instead of log(X))'
                                 },
-           parameter_descriptions=regress_parameter_descriptions,
-           output_descriptions= {
-               'result':"Directory format that will contain all information about the problem solved"
-               },
-           name='regress',
-           description=("The function computes the constrainted_sparse_regression vector with respect to the formulation of regression that is asked and with respect to the model selection parameters given")
-           #citations=[citations['Weiss2017']]
+           parameter_descriptions={},
+           output_descriptions= {'x': 'Matrix representing the data of the problem','c':'Matrix representing the constraint of the problem'},
+           name='add_taxa',
+           description=("Function that change the data thanks to a taxonomic tree")
            )
 
-plugin.methods.register_function(
-           function=classify,
-           inputs={'features': FeatureTable[Composition], 
-                    'c':ConstraintMatrix,
-                    'taxa': FeatureData[Taxonomy]
-                    },
-           parameters=classify_parameters,
-           outputs= [('result',CLASSOProblem)],
-           input_descriptions={'features': 'Matrix representing the data of the problem',
-                                'c': 'Constraint matrix, default is the zero-sum',
-                                'taxa':'Taxonomic table in order to build matrix A and then change the problem to the new formulation (with log(X)A instead of log(X))'
-                                },
-           parameter_descriptions=classify_parameter_descriptions,
-           output_descriptions= {
-               'result':"Directory format that will contain all information about the problem solved"
-               },
-           name='regress',
-           description=("The function computes the constrainted_sparse_regression vector with respect to the formulation of regression that is asked and with respect to the model selection parameters given")
-           #citations=[citations['Weiss2017']]
-           )
 
+# add_covariates
 plugin.methods.register_function(
            function=add_covariates,
            inputs={'features': FeatureTable[Composition], 
@@ -105,28 +110,59 @@ plugin.methods.register_function(
            )
 
 
-
-
+# regress
 plugin.methods.register_function(
-           function=generate_data,
-           inputs={'taxa':FeatureData[Taxonomy]},
-           parameters={'n':Int, 'd':Int, 'd_nonzero':Int, 'classification': Bool},
-           outputs= [('x',FeatureTable[Composition]),('c',ConstraintMatrix)],
-           input_descriptions={'taxa' : 'Taxonomy of the data. If it is given, it will generate random data associated to this'},
-           parameter_descriptions={'n': 'number of sample', 'd': 'number of features','d_nonzero': 'number of non nul componants in beta' , 'classification' : 'boolean, if set to True, y will be a vector with only -1 and 1'},
-           output_descriptions= {'x': 'Matrix representing the data of the problem','c':'Matrix representing the constraint of the problem'},
-           name='generate_data',
-           description=("Function that build random data")
+           function=regress,
+           inputs={'features': FeatureTable[Composition], 
+                    'c':ConstraintMatrix,
+                    #'taxa': FeatureData[Taxonomy]
+                    },
+           parameters=regress_parameters,
+           outputs= [('result',CLASSOProblem)],
+           input_descriptions={'features': 'Matrix representing the data of the problem',
+                                'c': 'Constraint matrix, default is the zero-sum',
+                                #'taxa':'Taxonomic table in order to build matrix A and then change the problem to the new formulation (with log(X)A instead of log(X))'
+                                },
+           parameter_descriptions=regress_parameter_descriptions,
+           output_descriptions= {
+               'result':"Directory format that will contain all information about the problem solved"
+               },
+           name='regress',
+           description=("The function computes the constrainted_sparse_regression vector with respect to the formulation of regression that is asked and with respect to the model selection parameters given")
+           #citations=[citations['Weiss2017']]
+           )
+
+# classify
+plugin.methods.register_function(
+           function=classify,
+           inputs={'features': FeatureTable[Composition], 
+                    'c':ConstraintMatrix,
+                    #'taxa': FeatureData[Taxonomy]
+                    },
+           parameters=classify_parameters,
+           outputs= [('result',CLASSOProblem)],
+           input_descriptions={'features': 'Matrix representing the data of the problem',
+                                'c': 'Constraint matrix, default is the zero-sum',
+                                #'taxa':'Taxonomic table in order to build matrix A and then change the problem to the new formulation (with log(X)A instead of log(X))'
+                                },
+           parameter_descriptions=classify_parameter_descriptions,
+           output_descriptions= {
+               'result':"Directory format that will contain all information about the problem solved"
+               },
+           name='regress',
+           description=("The function computes the constrainted_sparse_regression vector with respect to the formulation of regression that is asked and with respect to the model selection parameters given")
+           #citations=[citations['Weiss2017']]
            )
 
 
+#summarize
 plugin.visualizers.register_function(
     function=summarize,
-    inputs={'problem':CLASSOProblem},
+    inputs={'problem':CLASSOProblem,'taxa': FeatureData[Taxonomy]},
     parameters={},
-    input_descriptions={'problem': 'classo problem object containing the solution of the regression'},
+    input_descriptions={'problem': 'classo problem object containing the solution of the regression','taxa':'Taxonomic table in order to build matrix A and then change the problem to the new formulation (with log(X)A instead of log(X))'},
     parameter_descriptions={},
-    name='Summarize regression solution',
+    name='summarize',
     description=('Summarize the object created by the regression with its characteristics')
 )
 

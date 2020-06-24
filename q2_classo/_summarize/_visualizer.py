@@ -8,9 +8,10 @@ import shutil
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from plotly import graph_objects, express, offline
+import skbio
 
 
-from .._tree import make_lists_tree
+from .._tree import make_lists_tree,build_subtree
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 assets = os.path.join(dir_path, 'assets')
@@ -19,9 +20,10 @@ dir_form = os.path.join(dir_path, 'form')
 colors = {"threshold":"red", "selected":"green", "unselected":"blue"}
 
 
-def summarize(output_dir: str, problem : zarr.hierarchy.Group):
+def summarize(output_dir: str, problem : zarr.hierarchy.Group, taxa : skbio.TreeNode = None):
 
-    context = build_context(output_dir,problem)
+
+    context = build_context(output_dir,problem, taxa)
 
     index = os.path.join(assets, 'index.html')
     overview_template = os.path.join(assets, 'overview.html')
@@ -36,13 +38,13 @@ def summarize(output_dir: str, problem : zarr.hierarchy.Group):
     
 
 
-def build_context(output_dir,problem):
+def build_context(output_dir,problem, taxa):
 
     labels = np.array(problem['data/label'])
     features = pd.DataFrame(problem['data/X'],columns=labels)
     y = pd.DataFrame({'y':problem['data/y']})
     c = pd.DataFrame(problem['data/C'], columns = labels)
-    tree = problem['data'].attrs['tree']
+    #tree = problem['data'].attrs['tree']
     
 
     features.to_csv(os.path.join(output_dir, 'features.csv'),header=True, index=False)
@@ -58,15 +60,18 @@ def build_context(output_dir,problem):
     dico = {
         'formulation':name_formulation(problem['formulation'].attrs.asdict(),output_dir),
         'concomitant': problem['formulation'].attrs['concomitant'],
-        'with_tree' : not tree is None,
-        'tree'  : tree,
+        #'with_tree' : not tree is None,
+        #'tree'  : tree,
         'n' : len(problem['data/X']),
         'd' : len(problem['data/X'][0]),
         'k' : len(problem['data/C'])
     }
 
+    with_tree = not taxa is None
     
-    if dico['with_tree'] : plot_tree(tree,output_dir, 'tree.html')
+    if with_tree : 
+        tree = build_subtree(taxa,label_tree=labels)                                 
+        plot_tree(tree,output_dir, 'tree.html')
 
     context['dico']=dico
     dico_ms = problem['model_selection'].attrs.asdict()
@@ -120,7 +125,7 @@ def build_context(output_dir,problem):
         selected_param = np.array(problem['solution/StabSel/selected_param'])
         stability_support = stability[selected_param]
         
-        if dico['with_tree'] : plot_tree( tree,output_dir, 'StabSel-tree.html', selected_labels = labels[selected_param] )
+        if with_tree : plot_tree( tree,output_dir, 'StabSel-tree.html', selected_labels = labels[selected_param] )
 
         dico_stabsel['nsel']=len(stability_support)
         dico_stabsel['htmlstab']=q2templates.df_to_html(stability_support, index=False)

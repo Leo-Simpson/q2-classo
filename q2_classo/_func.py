@@ -10,14 +10,110 @@ from q2_types.feature_data import FeatureData
 import qiime2
 import pandas as pd
 import skbio
+from _tree import tree_to_matrix
 
 
-def regress(
-            features : pd.DataFrame,
+
+
+def generate_data(taxa : skbio.TreeNode = None,
+                  n : int = 100,
+                  d : int = 80,
+                  d_nonzero : int = 5,
+                  classification : bool = False
+                    ) -> (pd.DataFrame, np.ndarray) :
+
+    
+    label = np.array(['A'+str(i) for i in range(d//2)]+['B'+str(i) for i in range(d-d//2)])
+    label_gamma = label[:]
+    A = None
+    if not taxa is None :
+        label2 = np.array([tip.name for tip in taxa.tips()] )
+        if len(label2 ) >= d : label = label2[:d]
+        else : label[:len(label2)] = label2
+        A, label_gamma = tree_to_matrix(taxa,label)
+
+    (X,C,y),sol = random_data(n,d,d_nonzero,0,0.5,zerosum=True,seed= None, exp = True, A=A,classification = classification)
+
+    print( label_gamma[ sol != 0 ] )
+    if classification : y = y==1.
+
+    dfx = pd.DataFrame(data = X, index = [str(i) for i in range(len(X))] ,columns = label)
+    pd.DataFrame(data={'id':range(len(y)),'col':y}).to_csv("randomy.tsv",sep='\t',index=False)
+    return dfx, C
+
+
+def features_clr(features : pd.DataFrame, coef : float = 0.5) -> pd.DataFrame:
+    X = features.values
+    null_set = (X<=0.)
+    X[null_set] = coef
+    X = np.log(X)
+    X = (X.T - np.mean(X, axis=1)).T
+
+    return pd.DataFrame(data = X, index = list(features.index) ,columns = list(features.columns))
+
+
+def add_taxa(features : pd.DataFrame,
+            c : np.ndarray  = None,
+            taxa: skbio.TreeNode = None)-> (pd.DataFrame, np.ndarray) :
+
+
+    X = features.values
+    label = list(features.columns)
+    A, label_new = tree_to_matrix(taxa,label, with_repr=True)
+    X_new = X.dot(A)
+    C_new = c.dot(A)
+    dfx = pd.DataFrame(data = X_new, index = list(features.index) ,columns = label_new)
+    return dfx, C_new
+
+
+def add_covariates(features : pd.DataFrame, 
+                covariates : qiime2.Metadata, 
+                to_add : str,
+                c : np.ndarray = None)-> (pd.DataFrame, np.ndarray):
+
+    label = list(features.columns)
+    X = features.values
+    n,d,k = len(X),len(X.T), len(C)
+    
+
+
+    norm = np.mean( [ np.linalg.norm(X[:,j]) for j in range(d)]  ) # not sure here, maybe set it to 1 instead
+
+    X_new = np.zeros((n,d+len(to_add))  )
+    C_new = np.zeros((k,d+len(to_add)))
+    X_new[:,:d] = X
+    if c is None : C_new[:,:d] = 1.
+    else : C_new[:,:d] = c
+
+    covariates = covariates.filter_columns(column_type='numeric')
+
+    for i, name in enumerate(to_add):
+        #vect = Y[name].to_numpy() # ???
+        try:
+            col = covariates.get_column(name)
+        except ValueError:
+            raise ValueError("Column %r is not numeric or available in the"
+                             " metadata" % name)
+        vect = col.to_series().to_numpy()
+        
+        #if category ? 
+        #   vect = vect==vect[0] # set the vector to true if the value is the 
+        #   vect = 2*vect-1 # transform it to a vector of 1 and -1
+        # else : 
+        vect  = np.exp(  vect/np.linalg.norm(vect) * norm )   # we take the exp because then in regress or classify, we take the log
+        X_new[:,d+i] =  vect
+        label.append(name)
+    
+    dfx = pd.DataFrame(data = X_new, index = [str(i) for i in range(n)] ,columns = label)
+
+    return dfx, C_new
+
+
+def regress(features : pd.DataFrame,
             y : qiime2.NumericMetadataColumn,
             c : np.ndarray  = None,
-            do_clr : bool = True,
-            taxa: skbio.TreeNode = None,
+            do_yshift : bool = True,
+            #taxa: skbio.TreeNode = None,
             #PATH parameters :
             path : bool = True,
             path_numerical_method : str         = 'not specified',
@@ -62,14 +158,11 @@ def regress(
 
 
     Y = y.to_series().to_numpy()
-    if do_clr : 
-        Features = clr(features.values.T).T
-        Y = Y - np.mean(Y)
-    else : 
-        Features = features.values
+    if do_yshift : Y = Y - np.mean(Y)
+    Features = features.values
 
 
-    problem = classo_problem(Features, Y , C = c, rescale=rescale, Tree = taxa, label = list(features.columns) )
+    problem = classo_problem(Features, Y , C = c, rescale=rescale, label = list(features.columns) )
     problem.formulation.huber       = huber
     problem.formulation.concomitant = concomitant
     problem.formulation.rho         = rho
@@ -122,16 +215,10 @@ def regress(
     return problem
     
 
-
-
-
-
-def classify(
-            features : pd.DataFrame,
+def classify(features : pd.DataFrame,
             y : qiime2.CategoricalMetadataColumn,
             c : np.ndarray  = None,
-            do_clr : bool = True,
-            taxa: skbio.TreeNode = None,
+            #taxa: skbio.TreeNode = None,
             #PATH parameters :
             path : bool = True,
             path_numerical_method : str         = 'not specified',
@@ -178,13 +265,11 @@ def classify(
     Y = Y==Y[0] # set the vector to true if the value is the 
     Y = 2*Y-1 # transform it to a vector of 1 and -1
 
-    if do_clr : 
-        Features = clr(features.values.T).T
-    else : 
-        Features = features.values
+
+    Features = features.values
 
 
-    problem = classo_problem(Features, Y , C = c, rescale=rescale, Tree = taxa, label = list(features.columns) )
+    problem = classo_problem(Features, Y , C = c, rescale=rescale, label = list(features.columns) )
     problem.formulation.classification = True
     problem.formulation.concomitant = False
     problem.formulation.huber       = huber
@@ -237,94 +322,3 @@ def classify(
 
     return problem
     
-
-
-
-def add_covariates(
-            features : pd.DataFrame,         
-            covariates : qiime2.Metadata, 
-            to_add : str,
-            c : np.ndarray = None)-> (pd.DataFrame, np.ndarray):
-
-    label = list(features.columns)
-    X = features.values
-    n,d,k = len(X),len(X.T), len(C)
-    
-
-
-    norm = np.mean( [ np.linalg.norm(X[:,j]) for j in range(d)]  ) # not sure here, maybe set it to 1 instead
-
-    X_new = np.zeros((n,d+len(to_add))  )
-    C_new = np.zeros((k,d+len(to_add)))
-    X_new[:,:d] = X
-    if c is None : C_new[:,:d] = 1.
-    else : C_new[:,:d] = c
-
-    covariates = covariates.filter_columns(column_type='numeric')
-
-    for i, name in enumerate(to_add):
-        #vect = Y[name].to_numpy() # ???
-        try:
-            col = covariates.get_column(name)
-        except ValueError:
-            raise ValueError("Column %r is not numeric or available in the"
-                             " metadata" % name)
-        vect = col.to_series().to_numpy()
-        
-        #if category ? 
-        #   vect = vect==vect[0] # set the vector to true if the value is the 
-        #   vect = 2*vect-1 # transform it to a vector of 1 and -1
-        # else : 
-        vect  = np.exp(  vect/np.linalg.norm(vect) * norm )   # we take the exp because then in regress or classify, we take the log
-        X_new[:,d+i] =  vect
-        label.append(name)
-    
-    dfx = pd.DataFrame(data = X_new, index = [str(i) for i in range(n)] ,columns = label)
-
-    return dfx, C_new
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def generate_data(taxa : skbio.TreeNode = None,
-                  n : int = 100,
-                  d : int = 80,
-                  d_nonzero : int = 5,
-                  classification : bool = False
-                    ) -> (pd.DataFrame, np.ndarray) :
-
-    
-    label = np.array(['A'+str(i) for i in range(d//2)]+['B'+str(i) for i in range(d-d//2)])
-    label_gamma = label[:]
-    A = None
-    if not taxa is None :
-        label2 = np.array([tip.name for tip in taxa.tips()] )
-        if len(label2 ) >= d : label = label2[:d]
-        else : label[:len(label2)] = label2
-        A, label_gamma ,_ = tree_to_matrix(taxa,label)
-
-    (X,C,y),sol = random_data(n,d,d_nonzero,0,0.5,zerosum=True,seed= None, exp = True, A=A,classification = classification)
-
-    print( label_gamma[ sol != 0 ] )
-    if classification : y = y==1.
-
-    dfx = pd.DataFrame(data = X, index = [str(i) for i in range(len(X))] ,columns = label)
-    pd.DataFrame(data={'id':range(len(y)),'col':y}).to_csv("randomy.tsv",sep='\t',index=False)
-    return dfx, C
-
