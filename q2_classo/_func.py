@@ -163,11 +163,8 @@ def regress(features : pd.DataFrame,
 
     Y = y.to_series().to_numpy()
     if do_yshift : Y = Y - np.mean(Y)
-    Features = features.values
 
-    print(Features.shape)
-
-    problem = classo_problem(Features, Y , C = c, rescale=rescale, label = list(features.columns) )
+    problem = classo_problem(features.values, Y , C = c, rescale=rescale, label = list(features.columns) )
     problem.formulation.huber       = huber
     problem.formulation.concomitant = concomitant
     problem.formulation.rho         = rho
