@@ -18,3 +18,5 @@ class ConstraintFormat(model.BinaryFileFormat):
 ConstraintDirectoryFormat = model.SingleFileDirectoryFormat(
     'ConstraintDirectoryFormat', 'cmatrix.zip', format=ConstraintFormat
 )
+
+

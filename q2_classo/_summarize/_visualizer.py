@@ -60,16 +60,15 @@ def build_context(output_dir,problem, taxa):
     dico = {
         'formulation':name_formulation(problem['formulation'].attrs.asdict(),output_dir),
         'concomitant': problem['formulation'].attrs['concomitant'],
-        #'with_tree' : not tree is None,
+        'with_tree' : not taxa is None,
         #'tree'  : tree,
         'n' : len(problem['data/X']),
         'd' : len(problem['data/X'][0]),
         'k' : len(problem['data/C'])
     }
 
-    with_tree = not taxa is None
     
-    if with_tree : 
+    if dico['with_tree'] : 
         tree = build_subtree(taxa,label_tree=labels)                                 
         plot_tree(tree,output_dir, 'tree.html')
 
@@ -125,7 +124,7 @@ def build_context(output_dir,problem, taxa):
         selected_param = np.array(problem['solution/StabSel/selected_param'])
         stability_support = stability[selected_param]
         
-        if with_tree : plot_tree( tree,output_dir, 'StabSel-tree.html', selected_labels = labels[selected_param] )
+        if dico['with_tree'] : plot_tree( tree,output_dir, 'StabSel-tree.html', selected_labels = labels[selected_param] )
 
         dico_stabsel['nsel']=len(stability_support)
         dico_stabsel['htmlstab']=q2templates.df_to_html(stability_support, index=False)

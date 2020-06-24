@@ -102,7 +102,8 @@ def add_covariates(features : pd.DataFrame,
         #   vect = vect==vect[0] # set the vector to true if the value is the 
         #   vect = 2*vect-1 # transform it to a vector of 1 and -1
         # else : 
-        vect  = np.exp(  vect/np.linalg.norm(vect) * norm )   # we take the exp because then in regress or classify, we take the log
+        vect = vect - np.mean(vect)
+        vect  =  vect/np.linalg.norm(vect) * norm  
         X_new[:,d+i] =  vect
         label.append(name)
     
