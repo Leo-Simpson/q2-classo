@@ -54,7 +54,7 @@ def from_polaire(r,tet):
 
 
 def build_subtree(sktree,label_node): 
-    sub_sktree = sktree  # shir ? http://scikit-bio.org/docs/0.5.1/generated/skbio.tree.TreeNode.shear.html#skbio.tree.TreeNode.shear
+    sub_sktree = sktree.shear(label_node)  # http://scikit-bio.org/docs/0.5.1/generated/skbio.tree.TreeNode.shear.html#skbio.tree.TreeNode.shear
     return(sub_sktree)
 
 
