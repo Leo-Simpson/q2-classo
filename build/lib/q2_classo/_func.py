@@ -10,7 +10,7 @@ from q2_types.feature_data import FeatureData
 import qiime2
 import pandas as pd
 import skbio
-from _tree import tree_to_matrix
+from ._tree import tree_to_matrix
 
 
 
@@ -61,7 +61,8 @@ def add_taxa(features : pd.DataFrame,
     label = list(features.columns)
     A, label_new = tree_to_matrix(taxa,label, with_repr=True)
     X_new = X.dot(A)
-    C_new = c.dot(A)
+    if c is None : C_new = np.ones((1,len(A))).dot(A)
+    else : C_new = c.dot(A)
     dfx = pd.DataFrame(data = X_new, index = list(features.index) ,columns = label_new)
     return dfx, C_new
 

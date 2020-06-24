@@ -76,13 +76,13 @@ plugin.methods.register_function(
                     'taxa': FeatureData[Taxonomy]
                     },
            parameters={},
-           outputs= [('x',FeatureTable[Composition]),('c',ConstraintMatrix)],
+           outputs= [('x',FeatureTable[Composition]),('ca',ConstraintMatrix)],
            input_descriptions={'features': 'Matrix representing the data of the problem',
                                 'c': 'Constraint matrix, default is the zero-sum',
                                 'taxa':'Taxonomic table in order to build matrix A and then change the problem to the new formulation (with log(X)A instead of log(X))'
                                 },
            parameter_descriptions={},
-           output_descriptions= {'x': 'Matrix representing the data of the problem','c':'Matrix representing the constraint of the problem'},
+           output_descriptions= {'x': 'Matrix representing the data of the problem','ca':'Matrix representing the constraint of the problem adapted to the taxonomy'},
            name='add_taxa',
            description=("Function that change the data thanks to a taxonomic tree")
            )
