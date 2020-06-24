@@ -6,7 +6,7 @@ from q2_types.feature_table import FeatureTable, Composition
 
 regress_parameters={
     'y': MetadataColumn[Numeric],
-    'do_clr' : Bool,
+    'do_yshift' : Bool,
     #Formulation parameters
     'concomitant': Bool,
     'huber'      : Bool,
@@ -53,7 +53,7 @@ regress_parameters={
 }
 regress_parameter_descriptions={
     'y': 'Vector representing the output of the problem',
-    'do_clr' : 'if set to true, then features will be centered-log-ration transformed and y will be centered',
+    'do_yshift' : 'if set to true, then y will be centered',
     #Formulation parameters
     'concomitant': 'True if the formulation of the problem should be with an M_estimation of sigma. Default value = True',
     'huber'      : 'True if the formulation of the problem should be robust Default value = False',
@@ -101,7 +101,6 @@ regress_parameter_descriptions={
 
 classify_parameters={
     'y': MetadataColumn[Categorical],
-    'do_clr' : Bool,
     #Formulation parameters
     'huber'      : Bool,
     'rho'        : Float,
@@ -147,7 +146,6 @@ classify_parameters={
 }
 classify_parameter_descriptions={
     'y': 'Vector representing the output of the problem',
-    'do_clr' : 'if set to true, then features will be centered-log-ration transformed and y will be centered',
     #Formulation parameters
     'huber'      : 'True if the formulation of the problem should be robust Default value = False',
     'rho'        : 'Value of rho for robust problem. Default value = 1.345',

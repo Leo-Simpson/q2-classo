@@ -93,3 +93,18 @@ def tree_to_matrix(tree,label, with_repr = False):
 
 
     return np.array(L)[to_keep].T, np.array(label2)[to_keep]
+
+
+def remove_same_vect(L , label, order): 
+    K = len(L)
+    to_keep = np.array([True]*K)
+    j = label.index(order[0] )
+    col = L[j]
+    for i in range(K-1):
+        new_j = label.index(order[i+1])
+        new_col = L[new_j]
+        if np.array_equal(col,new_col) : 
+            to_keep[new_j]=False
+        else : j, col = new_j, new_col
+
+    return to_keep
