@@ -4,7 +4,7 @@ from qiime2.plugin import (Plugin, Int, Float, Range, Metadata, Str, Bool,
 
 import csv
 import skbio
-from q2_types.feature_table import FeatureTable, Composition, BIOMV210Format
+from q2_types.feature_table import FeatureTable, Composition, BIOMV210Format,BIOMV210DirFmt, Frequency
 from q2_types.feature_data import TSVTaxonomyFormat, FeatureData, Taxonomy
 import qiime2
 from . import  *
@@ -31,6 +31,7 @@ description=('This is QIIME 2 plugin that enables sparse and robust linear regre
 
 CLASSOProblem    = SemanticType("CLASSOProblem")
 ConstraintMatrix = SemanticType("ConstraintMatrix")
+Design           = SemanticType('Design', variant_of=FeatureTable.field['content'])
 
 
 plugin.register_formats(CLASSOProblemDirectoryFormat,ConstraintDirectoryFormat)
@@ -38,6 +39,11 @@ plugin.register_semantic_type_to_format(ConstraintMatrix,
                                         artifact_format=ConstraintDirectoryFormat)
 plugin.register_semantic_type_to_format(CLASSOProblem, 
                                         artifact_format=CLASSOProblemDirectoryFormat)
+
+plugin.register_semantic_type_to_format(FeatureTable[Design],artifact_format=BIOMV210DirFmt)
+
+plugin.register_semantic_types(CLASSOProblem, ConstraintMatrix, Design)
+
 
 # generate_data
 plugin.methods.register_function(
@@ -57,9 +63,9 @@ plugin.methods.register_function(
 # features_clr 
 plugin.methods.register_function(
            function=features_clr,
-           inputs={'features': FeatureTable[Composition]},
+           inputs={'features': FeatureTable[Composition | Frequency ]},
            parameters={'coef':Float},
-           outputs= [('x',FeatureTable[Composition])],
+           outputs= [('x',FeatureTable[Design])],
            input_descriptions={'features': 'Matrix representing the data of the problem'},
            parameter_descriptions={'coef':'Value that should be put instead of zeros in the feature table. Default value is 0.5'},
            output_descriptions= {'x': 'Matrix representing the data of the problem'},
@@ -71,12 +77,12 @@ plugin.methods.register_function(
 # add_taxa
 plugin.methods.register_function(
            function=add_taxa,
-           inputs={'features': FeatureTable[Composition], 
+           inputs={'features': FeatureTable[Design], 
                     'c':ConstraintMatrix,
                     'taxa': FeatureData[Taxonomy]
                     },
            parameters={},
-           outputs= [('x',FeatureTable[Composition]),('ca',ConstraintMatrix)],
+           outputs= [('x',FeatureTable[Design]),('ca',ConstraintMatrix)],
            input_descriptions={'features': 'Matrix representing the data of the problem',
                                 'c': 'Constraint matrix, default is the zero-sum',
                                 'taxa':'Taxonomic table in order to build matrix A and then change the problem to the new formulation (with log(X)A instead of log(X))'
@@ -91,11 +97,11 @@ plugin.methods.register_function(
 # add_covariates
 plugin.methods.register_function(
            function=add_covariates,
-           inputs={'features': FeatureTable[Composition], 
+           inputs={'features': FeatureTable[Design], 
                     'c': ConstraintMatrix
                     },
            parameters={'covariates': Metadata, 'to_add': List[Str]},
-           outputs= [('new_features',FeatureTable[Composition]), ('new_c', ConstraintMatrix)],
+           outputs= [('new_features',FeatureTable[Design]), ('new_c', ConstraintMatrix)],
            input_descriptions={'features': 'Matrix representing the data of the problem' , 
                                 'c':'Constraint matrix'
                                 },
@@ -113,7 +119,7 @@ plugin.methods.register_function(
 # regress
 plugin.methods.register_function(
            function=regress,
-           inputs={'features': FeatureTable[Composition], 
+           inputs={'features': FeatureTable[Design], 
                     'c':ConstraintMatrix,
                     #'taxa': FeatureData[Taxonomy]
                     },
@@ -135,7 +141,7 @@ plugin.methods.register_function(
 # classify
 plugin.methods.register_function(
            function=classify,
-           inputs={'features': FeatureTable[Composition], 
+           inputs={'features': FeatureTable[Design], 
                     'c':ConstraintMatrix,
                     #'taxa': FeatureData[Taxonomy]
                     },

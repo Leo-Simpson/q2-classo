@@ -4,7 +4,7 @@ from qiime2.plugin import (Plugin, Int, Float, Range, Metadata, Str, Bool,
 
 import csv
 import skbio
-from q2_types.feature_table import FeatureTable, Composition, BIOMV210Format
+from q2_types.feature_table import FeatureTable, Composition, BIOMV210Format,BIOMV210DirFmt, Frequency
 from q2_types.feature_data import TSVTaxonomyFormat, FeatureData, Taxonomy
 import qiime2
 from . import  *
@@ -39,6 +39,7 @@ plugin.register_semantic_type_to_format(ConstraintMatrix,
                                         artifact_format=ConstraintDirectoryFormat)
 plugin.register_semantic_type_to_format(CLASSOProblem, 
                                         artifact_format=CLASSOProblemDirectoryFormat)
+
 plugin.register_semantic_type_to_format(FeatureTable[Design],artifact_format=BIOMV210DirFmt)
 
 plugin.register_semantic_types(CLASSOProblem, ConstraintMatrix, Design)

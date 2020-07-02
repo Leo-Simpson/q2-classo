@@ -56,7 +56,7 @@ def add_taxa(features : pd.DataFrame,
             c : np.ndarray  = None,
             taxa: skbio.TreeNode = None)-> (pd.DataFrame, np.ndarray) :
 
-
+    
     X = features.values
     label = list(features.columns)
     A, label_new = tree_to_matrix(taxa,label, with_repr=True)
@@ -68,43 +68,57 @@ def add_taxa(features : pd.DataFrame,
     return dfx, C_new
 
 
-def add_covariates(features : pd.DataFrame, 
+def add_covariates(
                 covariates : qiime2.Metadata, 
                 to_add : str,
+                features : pd.DataFrame = None,    
                 c : np.ndarray = None)-> (pd.DataFrame, np.ndarray):
 
-    label = list(features.columns)
-    X = features.values
-    n,d,k = len(X),len(X.T), len(C)
+    if not features is None : 
     
+        label = list(features.columns)
+        X = features.values
+        n,d,k = len(X),len(X.T), len(C)
+        normal = True
+        norm = np.mean( [ np.linalg.norm(X[:,j]) for j in range(d)]  ) # not sure here, maybe set it to 1 instead
 
-
-    norm = np.mean( [ np.linalg.norm(X[:,j]) for j in range(d)]  ) # not sure here, maybe set it to 1 instead
-
+        
+    else : d, k, norm, normal = 0, 0, 1., False
+        
+        
     X_new = np.zeros((n,d+len(to_add))  )
     C_new = np.zeros((k,d+len(to_add)))
     X_new[:,:d] = X
     if c is None : C_new[:,:d] = 1.
     else : C_new[:,:d] = c
 
-    covariates = covariates.filter_columns(column_type='numeric')
+    covariates_numeric     = covariates.filter_columns(column_type='numeric')
+    covariates_categorical = covariates.filter_columns(column_type='categorical')
 
     for i, name in enumerate(to_add):
-        #vect = Y[name].to_numpy() # ???
         try:
-            col = covariates.get_column(name)
+            try : 
+                col = covariates_numeric.get_column(name)
+                vect = col.to_series().to_numpy()
+                if normal : 
+                    vect  = vect - np.mean(vect)
+                    vect  =  vect/np.linalg.norm(vect) * norm  
+            except ValueError : 
+                col = covariates_categorical.get_column(name)
+                vect = col.to_series().to_numpy()
+                verfify_binary(vect)
+                vect = vect==vect[0] # set the vector to true if the value is the 
+                vect = 2*Y-1 # transform it to a vector of 1 and -1
+            
+            X_new[:,d+i] =  vect
+            label.append(name)
+
         except ValueError:
-            raise ValueError("Column %r is not numeric or available in the"
+            raise ValueError("Column %r is not numeric/categorical or available in the"
                              " metadata" % name)
-        vect = col.to_series().to_numpy()
         
-        #if category ? 
-        #   vect = vect==vect[0] # set the vector to true if the value is the 
-        #   vect = 2*vect-1 # transform it to a vector of 1 and -1
-        # else : 
-        vect  = np.exp(  vect/np.linalg.norm(vect) * norm )   # we take the exp because then in regress or classify, we take the log
-        X_new[:,d+i] =  vect
-        label.append(name)
+    
+        
     
     dfx = pd.DataFrame(data = X_new, index = [str(i) for i in range(n)] ,columns = label)
 
@@ -163,11 +177,8 @@ def regress(features : pd.DataFrame,
 
     Y = y.to_series().to_numpy()
     if do_yshift : Y = Y - np.mean(Y)
-    Features = features.values
 
-    print(Features.shape)
-
-    problem = classo_problem(Features, Y , C = c, rescale=rescale, label = list(features.columns) )
+    problem = classo_problem(features.values, Y , C = c, rescale=rescale, label = list(features.columns) )
     problem.formulation.huber       = huber
     problem.formulation.concomitant = concomitant
     problem.formulation.rho         = rho
@@ -266,9 +277,11 @@ def classify(features : pd.DataFrame,
             rescale    : bool      = False) -> classo_problem :
 
     y = y.drop_missing_values()
-    Y = y.to_series().to_numpy()
-    Y = Y==Y[0] # set the vector to true if the value is the 
+    y = y.to_series().to_numpy()
+    verfify_binary(y)
+    Y = y==y[0] # set the vector to true if the value is the 
     Y = 2*Y-1 # transform it to a vector of 1 and -1
+    
 
 
     Features = features.values
@@ -326,4 +339,12 @@ def classify(features : pd.DataFrame,
     problem.solve()
 
     return problem
-    
+
+
+
+def verfify_binary(y):
+    l = []
+    for i in y : 
+        if not i in l : l.append(i)
+    if len(l)> 2 : 
+        raise ValueError("Metadata column y is supposed to be binary, but takes more than 2 different values : "+ ' ; '.join(l))
