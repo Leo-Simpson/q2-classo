@@ -42,14 +42,18 @@ def generate_data(taxa : skbio.TreeNode = None,
     return dfx, C
 
 
-def features_clr(features : pd.DataFrame, coef : float = 0.5) -> pd.DataFrame:
-    X = features.values
-    null_set = (X<=0.)
-    X[null_set] = coef
-    X = np.log(X)
-    X = (X.T - np.mean(X, axis=1)).T
+def transform_features(features : pd.DataFrame,transformation : Str = "clr", coef : float = 0.5) -> pd.DataFrame:
+    if transformation == "clr" : 
+        X = features.values
+        null_set = (X<=0.)
+        X[null_set] = coef
+        X = np.log(X)
+        X = (X.T - np.mean(X, axis=1)).T
 
-    return pd.DataFrame(data = X, index = list(features.index) ,columns = list(features.columns))
+        return pd.DataFrame(data = X, index = list(features.index) ,columns = list(features.columns))
+
+    else : 
+        raise ValueError("Unknown transformation name, use clr and not %r" % transformation)
 
 
 def add_taxa(features : pd.DataFrame,
