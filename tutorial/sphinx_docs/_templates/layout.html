@@ -1,0 +1,27 @@
+{% extends "!layout.html" %}
+
+{% block extrahead %}
+  {{ super() }}
+  <link rel="stylesheet" href="{{ pathto('_static/css/bootstrap.min.css', 1) }}" media="screen" />
+  <link rel="stylesheet" href="{{ pathto('_static/css/bootstrap-theme.min.css', 1) }}" media="screen" />
+  <link rel="stylesheet" href="{{ pathto('_static/css/custom.css', 1) }}" media="screen" />
+  <script src="{{ pathto('_static/js/bootstrap.min.js', 1) }}"></script>
+  <script src="{{ pathto('_static/js/clipboard.min.js', 1) }}"></script>
+{% endblock %}
+
+{% block footer %}
+  {{ super() }}
+  <script src="{{ pathto('_static/js/clipboard-driver.js', 1) }}"></script>
+  <script>
+    // Open external links (http, https) in a new tab/window. Taken from:
+    //     https://github.com/sphinx-doc/sphinx/issues/1634
+    // Note: When using target, consider adding rel="noopener noreferrer" to avoid
+    // exploitation of the window.opener API.
+    //    https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#attr-target
+    $(document).ready(function() {
+        $("a[href^='http']")
+          .attr('target','_blank')
+          .attr('rel', 'noopener noreferrer');
+    });
+  </script>
+{% endblock %}

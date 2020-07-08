@@ -1,0 +1,23 @@
+.nav.nav-tabs {
+    margin-left: 0px;
+}
+
+.sphinxsidebarwrapper {
+    display: none;
+}
+
+.clipboard-btn {
+    position: absolute;
+    top: 0px;
+    right: 0px;
+}
+
+.btn-default {
+    color: #333;
+    background-color: #fff;
+    border-color: #ccc;
+}
+
+.highlight-shell {
+    position: relative;
+}
