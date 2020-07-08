@@ -82,7 +82,7 @@ def tree_to_matrix(tree,label, with_repr = False):
         name_leaf = label[i]
         dicti[name_leaf] = np.zeros(d)
         dicti[name_leaf][i] = 1
-        order.append(i)
+        order.append(name_leaf)
         if not name_leaf in LEAVES : tree.append(TreeNode(name=name_leaf))  # add the node if it is node already in the tree
         for n in tree.find(name_leaf).ancestors() : 
             ancest = n.name
@@ -113,10 +113,10 @@ def tree_to_matrix(tree,label, with_repr = False):
 def remove_same_vect(L , label, order): 
     K = len(L)
     to_keep = np.array([True]*K)
-    j = order[-1]
+    j = label.index(order[-1] )
     col = L[j]
     for i in range(K-2,-1,-1):
-        new_j = order[i]
+        new_j = label.index(order[i])
         new_col = L[new_j]
         if np.array_equal(col,new_col) : to_keep[new_j]=False
         else : j, col = new_j, new_col

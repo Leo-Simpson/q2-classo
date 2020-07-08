@@ -178,11 +178,19 @@ def regress(features : pd.DataFrame,
             rho        : float     = 1.345,
             rescale    : bool      = False) -> classo_problem :
 
-
-    Y = y.to_series().to_numpy()
+    pdY = y.to_series()
+    missing = pdY.isna()
+    label_missing = list(pdY.index[missing])
+    if label_missing : 
+        print("{} are missing in y ".format(label_missing))
+    Y = pdY[~missing].to_numpy()
     if do_yshift : Y = Y - np.mean(Y)
+    X = features.values[~missing, :]
 
-    problem = classo_problem(features.values, Y , C = c, rescale=rescale, label = list(features.columns) )
+    print(Y.shape,X.shape)
+
+
+    problem = classo_problem(X, Y , C = c, rescale=rescale, label = list(features.columns) )
     problem.formulation.huber       = huber
     problem.formulation.concomitant = concomitant
     problem.formulation.rho         = rho

@@ -67,9 +67,9 @@ plugin.methods.register_function(
            parameters={'transformation':Str,'coef':Float},
            outputs= [('x',FeatureTable[Design])],
            input_descriptions={'features': 'Matrix representing the compositional data of the problem, in order to clr transform it'},
-           parameter_descriptions={'transformation':" String representing the name of the transformation we will use ",'clr_coef':'Value that should be put instead of zeros in the feature table. Default value is 0.5'},
+           parameter_descriptions={'transformation':" String representing the name of the transformation we will use ",'coef':'Value that should be put instead of zeros in the feature table. Default value is 0.5'},
            output_descriptions= {'x': 'Matrix representing the data of the problem'},
-           name='features_clr',
+           name='transform-features',
            description=("Perform transformation, from FeatureTable[Composition/Frequency] prior to regress or classify, default transformation is centered log ratio")
            )
 

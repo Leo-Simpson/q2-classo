@@ -83,7 +83,7 @@ def tree_to_matrix(tree,label, with_repr = False):
         dicti[name_leaf] = np.zeros(d)
         dicti[name_leaf][i] = 1
         order.append(name_leaf)
-        if not name_leaf in LEAVES : tree.append(TreeNode(name=name_leaf))  # add the node if it is node already in the tree
+        if not name_leaf in LEAVES : tree.append(skbio.TreeNode(name=name_leaf))  # add the node if it is node already in the tree
         for n in tree.find(name_leaf).ancestors() : 
             ancest = n.name
             if ancest[-1] != '_': 
