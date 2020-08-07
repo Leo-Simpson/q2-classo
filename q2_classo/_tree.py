@@ -4,12 +4,12 @@ import numpy as np
 from plotly import graph_objects
 colors = {"threshold":"red", "selected":"green", "unselected":"blue"}
 
-def make_lists_tree(sktree):
+def make_lists_tree(sktree,circular = False):
 
 
     POS, E, LAB = [], [], []
 
-    def add(tet, r, node, dtet : float, circular = False ):
+    def add(tet, r, node, dtet : float, circular = False):
         current_index = len(POS)
         LAB.append(node.name)
         CHILDREN = node.children
@@ -24,20 +24,23 @@ def make_lists_tree(sktree):
             for i in range(n)  : 
                 tet_new = tet_new + 2*step
                 E.append([current_index, len(POS)])
-                depth = max(depth,add(tet_new,r+1,CHILDREN[i], step))
+                child_depth = add(tet_new,r+1,CHILDREN[i], step,circular=circular)
+                depth = max(depth,child_depth)
             return depth+1
 
 
         else : 
             if circular : POS.append(from_polaire(r,tet))
-            else : POS.append([tet,'depth'])
+            else : 
+                if (node.name[1]=='_') : POS.append([tet,r])
+                else                   : POS.append([tet,'depth'])
             return 0
 
     
-    depth = add(0.,0.,sktree, np.pi)
+    depth = add(0.,0.,sktree, np.pi, circular=circular)
     for i in range(len(LAB)):
         if LAB[i] is None : LAB[i] = 'None'
-        if LAB[i][-1] == '_' : remove(POS,E,LAB,i)
+        #if LAB[i][-1] == '_' : remove(POS,E,LAB,i)
         #if not LAB[i] in labels : remove(POS,E,LAB,i)
 
     for c in POS:
@@ -80,17 +83,19 @@ def tree_to_matrix(tree,label, with_repr = False):
     order = [] # list that will give the order in which the nodes are added in the dicti, such that it will be easy to remove similar nodes
     for i in range(d): 
         name_leaf = label[i]
-        dicti[name_leaf] = np.zeros(d)
-        dicti[name_leaf][i] = 1
+        dicti[name_leaf] = np.zeros(d,dtype=bool)
+        dicti[name_leaf][i] = True
         order.append(name_leaf)
-        if not name_leaf in LEAVES : tree.append(skbio.TreeNode(name=name_leaf))  # add the node if it is node already in the tree
+        if not name_leaf in LEAVES : 
+            tree.append(skbio.TreeNode(name=name_leaf))  # add the node if it is node already in the tree
+            print("The feature {} i not in the leaves of the tree".format(name_leaf) )
         for n in tree.find(name_leaf).ancestors() : 
             ancest = n.name
             if ancest[-1] != '_': 
                 if not ancest in dicti : 
-                    dicti[ancest] = np.zeros(d)
+                    dicti[ancest] = np.zeros(d,dtype=bool)
                     order.append(ancest)
-                dicti[ancest][i] = 1
+                dicti[ancest][i] = True
 
 
     L,label2 = [], []
@@ -98,16 +103,16 @@ def tree_to_matrix(tree,label, with_repr = False):
 
     for node in tree.levelorder():
         nam = node.name
-        if nam in dicti and not nam in label2 : 
-            label2.append(nam)
-            L.append(dicti[nam])
+        if nam in dicti and not nam in label2 :
+                label2.append(nam)
+                L.append(dicti[nam])
 
     to_keep = np.ones(len(L),dtype=bool)
     to_keep = remove_same_vect(L , label2,order)
-    'g__Clos'
+    L = np.array(L)
+    to_keep[np.all(L,axis=1)] = False
 
-
-    return np.array(L)[to_keep].T, np.array(label2)[to_keep]
+    return L[to_keep].T, np.array(label2)[to_keep]
 
 
 def remove_same_vect(L , label, order): 
@@ -140,9 +145,9 @@ def make_annotations(pos, lab, font_size=10, font_color='rgb(250,250,250)'):
 
 
 
-def plot_tree(taxa, labels, selected_labels = None ) : 
+def plot_tree(taxa, labels, selected_labels = None, circular = False ) : 
 
-    position, Edges, labels_nodes = make_lists_tree(build_subtree(taxa,labels))
+    position, Edges, labels_nodes = make_lists_tree(build_subtree(taxa,labels),circular=circular)
     
     #position[:,1] = 2*max(position[:,1]) - position[:,1]
     
@@ -208,8 +213,13 @@ def plot_tree(taxa, labels, selected_labels = None ) :
             showticklabels=True,
             )
 
+    annot = [ ]
+    for name in labels_nodes : 
+        if name[1]=='_' : annot.append(name[0])
+        else : annot.append("B")
+
     fig.update_layout(title= 'Taxonomic tree',
-              annotations=make_annotations(position, [ name[0] for name in labels_nodes ]),
+              annotations=make_annotations(position, annot),
               font_size=12,
               showlegend=False,
               xaxis=axis,

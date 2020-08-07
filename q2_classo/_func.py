@@ -13,6 +13,7 @@ import skbio
 from ._tree import tree_to_matrix
 
 
+# TODO : change C type to pandas dataframe
 
 
 def generate_data(taxa : skbio.TreeNode = None,
@@ -64,6 +65,7 @@ def add_taxa(features : pd.DataFrame,
     X = features.values
     label = list(features.columns)
     A, label_new = tree_to_matrix(taxa,label, with_repr=True)
+    print(A.shape)
     X_new = X.dot(A)
     if c is None : C_new = np.ones((1,len(A))).dot(A)
     else : C_new = c.dot(A)
@@ -72,69 +74,68 @@ def add_taxa(features : pd.DataFrame,
     return dfx, C_new
 
 
+def _code_columns(df, column_map, norm=1., normalization=False):
+    def _code_col(series):
+        type_ = column_map[series.index.name].type
+
+        if type_ == 'numeric':
+            vect = series.to_numpy()
+            # if vect has a NaN ==> raise error
+            if normalization : 
+                vect  = vect - np.mean(vect)
+                vect  =  vect/np.linalg.norm(vect) * norm  
+            return vect
+        elif type_ == 'categorical':
+            vect = series.to_numpy()
+            # if vect has a NaN ==> raise error
+            verfify_binary(vect)
+            vect = vect==vect[0] # set the vector to true if the value is the 
+            vect = 2*Y-1 # transform it to a vector of 1 and -1
+            return vect
+        else:
+            raise ValueError("Unknown type.")
+
+    return df.apply(_code_col, axis=0)
+
+
 def add_covariates(
                 covariates : qiime2.Metadata, 
                 to_add : str,
                 features : pd.DataFrame = None,    
                 c : np.ndarray = None)-> (pd.DataFrame, np.ndarray):
 
-    if not features is None : 
+
     
-        label = list(features.columns)
-        X = features.values
-        n,d,k = len(X),len(X.T), len(C)
-        normal = True
-        norm = np.mean( [ np.linalg.norm(X[:,j]) for j in range(d)]  ) # not sure here, maybe set it to 1 instead
+    if features is not None:
+        norm = features.apply(np.linalg.norm, axis=0).mean()
+        normalization = True
+    else:
+        norm = 1
+        normalization = False
 
-        
-    else : d, k, norm, normal = 0, 0, 1., False
-        
-        
-    X_new = np.zeros((n,d+len(to_add))  )
-    C_new = np.zeros((k,d+len(to_add)))
-    X_new[:,:d] = X
-    if c is None : C_new[:,:d] = 1.
-    else : C_new[:,:d] = c
+    covariates_df = covariates.to_dataframe()[to_add]
+    covariates_df = _code_columns(covariate_df, covariates.columns, 
+                                  norm, normalization)
+    if features is not None:
+        #features, covariates_df = features.align(covariates_df, join='inner',axis=0)
+        X = pd.concat([features, covariates_df], axis=1, join='inner')
 
-    covariates_numeric     = covariates.filter_columns(column_type='numeric')
-    covariates_categorical = covariates.filter_columns(column_type='categorical')
+        c_new = np.zeros((len(c),len(c[0])+len(to_add)))
+        c_new[:,:len(c[0])] = c
+    else:
+        X = covariates_df
+        c_new = np.zeros((1,len(to_add)))
 
-    for i, name in enumerate(to_add):
-        try:
-            try : 
-                col = covariates_numeric.get_column(name)
-                vect = col.to_series().to_numpy()
-                if normal : 
-                    vect  = vect - np.mean(vect)
-                    vect  =  vect/np.linalg.norm(vect) * norm  
-            except ValueError : 
-                col = covariates_categorical.get_column(name)
-                vect = col.to_series().to_numpy()
-                verfify_binary(vect)
-                vect = vect==vect[0] # set the vector to true if the value is the 
-                vect = 2*Y-1 # transform it to a vector of 1 and -1
-            
-            X_new[:,d+i] =  vect
-            label.append(name)
-
-        except ValueError:
-            raise ValueError("Column %r is not numeric/categorical or available in the"
-                             " metadata" % name)
-        
-    
-        
-    
-    dfx = pd.DataFrame(data = X_new, index = [str(i) for i in range(n)] ,columns = label)
+    return X, c_new
 
 
 
-    return dfx, C_new
 
 
 def regress(features : pd.DataFrame,
             y : qiime2.NumericMetadataColumn,
             c : np.ndarray  = None,
-            do_yshift : bool = True,
+            do_yshift : bool = False,
             #taxa: skbio.TreeNode = None,
             #PATH parameters :
             path : bool = True,
@@ -176,24 +177,39 @@ def regress(features : pd.DataFrame,
             concomitant: bool      = True,
             huber      : bool      = False,
             rho        : float     = 1.345,
-            rescale    : bool      = False) -> classo_problem :
+            intercept  : bool      = True) -> classo_problem :
 
-    pdY = y.to_series()
+    
+    features, pdY = features.align(y.to_series(), join='inner',axis=0)
     missing = pdY.isna()
     label_missing = list(pdY.index[missing])
     if label_missing : 
-        print("{} are missing in y ".format(label_missing))
+       print("{} are missing in y ".format(label_missing))
     Y = pdY[~missing].to_numpy()
-    if do_yshift : Y = Y - np.mean(Y)
     X = features.values[~missing, :]
+
+
+
+
+
+
+    
+    
+
 
     print(Y.shape,X.shape)
 
+    if do_yshift : Y = Y - np.mean(Y)  
 
-    problem = classo_problem(X, Y , C = c, rescale=rescale, label = list(features.columns) )
+    print(np.mean(Y))
+
+    print( np.mean( (Y-np.mean(Y))**2 ) )
+
+    problem = classo_problem(X, Y , C = c, label = list(features.columns) )
     problem.formulation.huber       = huber
     problem.formulation.concomitant = concomitant
     problem.formulation.rho         = rho
+    problem.formulation.intercept = intercept
 
     problem.model_selection.PATH= path
     if path:
@@ -286,24 +302,31 @@ def classify(features : pd.DataFrame,
             #Formulation parameters
             huber      : bool      = False,
             rho        : float     = -1.,
-            rescale    : bool      = False) -> classo_problem :
+            intercept  : bool      = True) -> classo_problem :
 
-    y = y.drop_missing_values()
-    y = y.to_series().to_numpy()
-    verfify_binary(y)
-    Y = y==y[0] # set the vector to true if the value is the 
-    Y = 2*Y-1 # transform it to a vector of 1 and -1
+    
+    features, pdY = features.align(y.to_series(), join='inner',axis=0)
+    missing = pdY.isna()
+    label_missing = list(pdY.index[missing])
+    if label_missing : 
+       print("{} are missing in y ".format(label_missing))
+    Y = pdY[~missing].to_numpy()
+    X = features.values[~missing, :]
+    
+    
+    
+    verfify_binary(Y)
+    Y = Y==Y[0] 
+    Y = 2*Y-1 
     
 
 
-    Features = features.values
-
-
-    problem = classo_problem(Features, Y , C = c, rescale=rescale, label = list(features.columns) )
+    problem = classo_problem(X, Y , C = c, label = list(features.columns) )
     problem.formulation.classification = True
     problem.formulation.concomitant = False
     problem.formulation.huber       = huber
     problem.formulation.rho_classification = rho
+    problem.formulation.intercept = intercept
 
     problem.model_selection.PATH= path
     if path:
@@ -360,3 +383,19 @@ def verfify_binary(y):
         if not i in l : l.append(i)
     if len(l)> 2 : 
         raise ValueError("Metadata column y is supposed to be binary, but takes more than 2 different values : "+ ' ; '.join(l))
+
+
+"""
+    labels = list(pdY.index)
+    x, y , missing = [] , [], []
+    for label in labels : 
+        if np.isnan(pdY[label]) : 
+            missing.append(label)
+        else : 
+            x.append( features.loc[label,:].values )
+            y.append(pdY[label])
+    
+    if missing : 
+        print("{} are missing in y ".format(missing))
+"""
+

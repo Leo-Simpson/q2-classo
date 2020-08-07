@@ -11,7 +11,7 @@ regress_parameters={
     'concomitant': Bool,
     'huber'      : Bool,
     'rho'        : Float,
-    'rescale'    : Bool,
+    'intercept'  : Bool,
 
 
     #PATH parameters :
@@ -58,7 +58,7 @@ regress_parameter_descriptions={
     'concomitant': 'True if the formulation of the problem should be with an M_estimation of sigma. Default value = True',
     'huber'      : 'True if the formulation of the problem should be robust Default value = False',
     'rho'        : 'Value of rho for robust problem. Default value = 1.345',
-    'rescale'    : 'if True, then the function rescale() will be applied to data when solving the problem',
+    'intercept'    : 'if True, the formulation will be with an intercept',
 
 
     #PATH parameters :
@@ -104,7 +104,7 @@ classify_parameters={
     #Formulation parameters
     'huber'      : Bool,
     'rho'        : Float,
-    'rescale'    : Bool,
+    'intercept'  : Bool,
 
 
     #PATH parameters :
@@ -149,7 +149,7 @@ classify_parameter_descriptions={
     #Formulation parameters
     'huber'      : 'True if the formulation of the problem should be robust Default value = False',
     'rho'        : 'Value of rho for robust problem. Default value = 1.345',
-    'rescale'    : 'if True, then the function rescale() will be applied to data when solving the problem',
+    'intercept'    : 'if True, the formulation will be with an intercept',
 
 
     #PATH parameters :

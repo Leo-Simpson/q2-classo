@@ -9,7 +9,7 @@ def make_lists_tree(sktree):
 
     POS, E, LAB = [], [], []
 
-    def add(tet, r, node, dtet : float, circular = False ):
+    def add(tet, r, node, dtet : float, circular = False):
         current_index = len(POS)
         LAB.append(node.name)
         CHILDREN = node.children
@@ -24,20 +24,23 @@ def make_lists_tree(sktree):
             for i in range(n)  : 
                 tet_new = tet_new + 2*step
                 E.append([current_index, len(POS)])
-                depth = max(depth,add(tet_new,r+1,CHILDREN[i], step))
+                child_depth = add(tet_new,r+1,CHILDREN[i], step)
+                depth = max(depth,child_depth)
             return depth+1
 
 
         else : 
             if circular : POS.append(from_polaire(r,tet))
-            else : POS.append([tet,'depth'])
+            else : 
+                if (node.name[1]=='_') : POS.append([tet,r])
+                else                   : POS.append([tet,'depth'])
             return 0
 
     
     depth = add(0.,0.,sktree, np.pi)
     for i in range(len(LAB)):
         if LAB[i] is None : LAB[i] = 'None'
-        if LAB[i][-1] == '_' : remove(POS,E,LAB,i)
+        #if LAB[i][-1] == '_' : remove(POS,E,LAB,i)
         #if not LAB[i] in labels : remove(POS,E,LAB,i)
 
     for c in POS:
@@ -83,7 +86,9 @@ def tree_to_matrix(tree,label, with_repr = False):
         dicti[name_leaf] = np.zeros(d)
         dicti[name_leaf][i] = 1
         order.append(name_leaf)
-        if not name_leaf in LEAVES : tree.append(TreeNode(name=name_leaf))  # add the node if it is node already in the tree
+        if not name_leaf in LEAVES : 
+            tree.append(skbio.TreeNode(name=name_leaf))  # add the node if it is node already in the tree
+            print("The feature {} i not in the leaves of the tree".format(name_leaf) )
         for n in tree.find(name_leaf).ancestors() : 
             ancest = n.name
             if ancest[-1] != '_': 
@@ -104,7 +109,6 @@ def tree_to_matrix(tree,label, with_repr = False):
 
     to_keep = np.ones(len(L),dtype=bool)
     to_keep = remove_same_vect(L , label2,order)
-    'g__Clos'
 
 
     return np.array(L)[to_keep].T, np.array(label2)[to_keep]
@@ -208,8 +212,13 @@ def plot_tree(taxa, labels, selected_labels = None ) :
             showticklabels=True,
             )
 
+    annot = [ ]
+    for name in labels_nodes : 
+        if name[1]=='_' : annot.append(name[0])
+        else : annot.append("B")
+
     fig.update_layout(title= 'Taxonomic tree',
-              annotations=make_annotations(position, [ name[0] for name in labels_nodes ]),
+              annotations=make_annotations(position, annot),
               font_size=12,
               showlegend=False,
               xaxis=axis,

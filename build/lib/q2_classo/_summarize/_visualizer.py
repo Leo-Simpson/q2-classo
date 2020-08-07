@@ -10,6 +10,8 @@ import matplotlib.patches as mpatches
 from plotly import graph_objects, express, offline
 import skbio
 
+from time import time
+
 
 from .._tree import make_lists_tree, plot_tree
 
@@ -20,10 +22,8 @@ dir_form = os.path.join(dir_path, 'form')
 colors = {"threshold":"red", "selected":"green", "unselected":"blue"}
 
 
-def summarize(output_dir: str, problem : zarr.hierarchy.Group, taxa : skbio.TreeNode = None):
-
-
-    context = build_context(output_dir,problem, taxa)
+def summarize(output_dir: str, problem : zarr.hierarchy.Group, taxa : skbio.TreeNode = None, maxplot : int =200):
+    context = build_context(output_dir,problem, taxa,maxplot)
 
     index = os.path.join(assets, 'index.html')
     overview_template = os.path.join(assets, 'overview.html')
@@ -38,12 +38,17 @@ def summarize(output_dir: str, problem : zarr.hierarchy.Group, taxa : skbio.Tree
     
 
 
-def build_context(output_dir,problem, taxa):
+def build_context(output_dir,problem,taxa,max_number):
+    t = time()
+
 
     labels = np.array(problem['data/label'])
-    features = pd.DataFrame(problem['data/X'],columns=labels)
+    if problem['formulation'].attrs['intercept'] : 
+        features, c = pd.DataFrame(problem['data/X'],columns=labels[1:]), pd.DataFrame(problem['data/C'],columns=labels[1:]) 
+    else :
+        features, c = pd.DataFrame(problem['data/X'],columns=labels), pd.DataFrame(problem['data/C'],columns=labels) 
     y = pd.DataFrame({'y':problem['data/y']})
-    c = pd.DataFrame(problem['data/C'], columns = labels)
+
     #tree = problem['data'].attrs['tree']
     
 
@@ -76,6 +81,7 @@ def build_context(output_dir,problem, taxa):
     context['dico']=dico
     dico_ms = problem['model_selection'].attrs.asdict()
 
+
     if dico_ms['PATH']:
         context['path'] = True
         context['tabs'].append({'title': 'Lambda-path','url': 'path.html'})
@@ -92,6 +98,7 @@ def build_context(output_dir,problem, taxa):
         context['dicopath']= dico_path
 
         plot_path(np.array(problem['solution/PATH/BETAS']),SIGMAS,problem['solution/PATH/LAMBDAS'],output_dir,labels,"beta-path.html","sigma-path.html")
+
 
     if dico_ms['CV']:
         context['cv'] = True
@@ -111,8 +118,9 @@ def build_context(output_dir,problem, taxa):
         if (dico_cv['oneSE']): lam = dico_cv['lambda_1SE']
         else : lam = dico_cv['lambda_min']
 
-        plot_beta(np.array(problem['solution/CV/refit']),output_dir,labels,'cv-refit.html',r"Refitted coefficients of beta after CV model selection finds lambda = "+str(lam))
+        plot_beta(np.array(problem['solution/CV/refit']),output_dir,labels,'cv-refit.html',r"Refitted coefficients of beta after CV model selection finds lambda = "+str(lam),max_number)
         plot_cv(xGraph, yGraph,dico_cv['index_1SE'],dico_cv['index_min'],standard_error, output_dir, 'cv-graph.html')
+
 
     if dico_ms['StabSel']:
         context['stabsel'] = True
@@ -134,12 +142,14 @@ def build_context(output_dir,problem, taxa):
 
         context['dicostabsel']= dico_stabsel
 
-        plot_beta(np.array(problem['solution/StabSel/refit']),output_dir,labels,'stabsel-refit.html',r"Refitted coefficients of beta after stability selection")
-        plot_stability(problem['solution/StabSel/distribution'], selected_param, dico_stabsel['threshold'],dico_stabsel['method'], labels, output_dir,'stabsel-graph.html')
+        plot_beta(np.array(problem['solution/StabSel/refit']),output_dir,labels,'stabsel-refit.html',r"Refitted coefficients of beta after stability selection",max_number)
+        plot_stability(np.array(stability['stability-probability']), selected_param, dico_stabsel['threshold'],dico_stabsel['method'], labels, output_dir,'stabsel-graph.html', max_number)
         
         if dico_stabsel["with_path"]: 
             plot_stability_path(problem['solution/StabSel/lambdas_path'], problem['solution/StabSel/distribution_path'],
                                 selected_param,dico_stabsel['threshold'],dico_stabsel['method'],labels, output_dir, 'stabsel-path.html')
+
+
 
     if dico_ms['LAMfixed']:
         context['lam'] = True
@@ -156,8 +166,10 @@ def build_context(output_dir,problem, taxa):
         context['dicolam']= dico_lam
 
 
-        plot_beta(np.array(problem['solution/LAMfixed/beta']),output_dir,labels,'lam-beta.html',r"Coefficients of beta at lambda = "+str(dico_lam['lam']))
-        plot_beta(np.array(problem['solution/LAMfixed/refit']),output_dir,labels,'lam-refit.html',r"Reffited coefficients of beta at lambda = "+str(dico_lam['lam']))
+        plot_beta(np.array(problem['solution/LAMfixed/beta']),output_dir,labels,'lam-beta.html',r"Coefficients of beta at lambda = "+str(dico_lam['lam']),max_number)
+        plot_beta(np.array(problem['solution/LAMfixed/refit']),output_dir,labels,'lam-refit.html',r"Reffited coefficients of beta at lambda = "+str(dico_lam['lam']),max_number)
+
+
 
     return context
 
@@ -202,9 +214,11 @@ def name_formulation(dictio,output_dir):
 
 def plot_path(BETAS, SIGMAS, LAMBDAS, directory, labels, name1, name2):
     fig = graph_objects.Figure(layout_title_text=r"Coefficients across lambda-path")
+    maxB = np.amax(abs(BETAS))
     for i in range(len(BETAS[0])):
-        fig.add_trace(graph_objects.Scatter(x=LAMBDAS, y=BETAS[:,i],
-                            name=labels[i]))
+        if np.amax(abs(BETAS[:,i]))>maxB*0.01 : 
+            fig.add_trace(graph_objects.Scatter(x=LAMBDAS, y=BETAS[:,i],
+                                name=labels[i]))
     fig.update_xaxes(title_text=r"lambda")
     fig.update_yaxes(title_text=r"Coefficients beta_i ")
     offline.plot(fig, filename = os.path.join(directory, name1), auto_open=False)
@@ -222,9 +236,13 @@ def plot_path(BETAS, SIGMAS, LAMBDAS, directory, labels, name1, name2):
 
 
 
-def plot_beta(beta,directory,labels,name,title):
+def plot_beta(beta,directory,labels,name,title,max_number):
 
-    data = {'index': range(len(beta)), "Coefficient i of beta": beta , 'label': labels }
+    reduc = np.ones(len(beta), dtype='bool')
+    if len(beta) > max_number : 
+        reduc[np.argpartition(abs(beta), -max_number)[:-max_number] ] = False
+
+    data = {'index': range(len(beta[reduc])), "Coefficient i of beta": beta[reduc] , 'label': labels[reduc] }
     fig = express.bar(data, x='index', y="Coefficient i of beta", hover_data=['label'])
     fig.update_layout(title= title)
 
@@ -258,20 +276,30 @@ def plot_cv(xGraph, yGraph,index_1SE, index_min,SE, directory, name):
 
 
 
-def plot_stability(distribution, selected_param, threshold, method, labels, directory, name):
-    data = {'index': range(len(distribution)), "Selection probability": distribution , 'label': labels, 'selected':selected_param }
+def plot_stability(distribution, selected_param, threshold, method, labels, directory, name, max_number):
+    reduc = np.ones(len(distribution), dtype='bool')
+    if len(distribution) > max_number : 
+        reduc[np.argpartition(distribution, -max_number)[:-max_number] ] = False
+
+
+    data = {'index': range(len(distribution[reduc])), "Selection probability": distribution[reduc] , 'label': labels[reduc], 'selected':selected_param[reduc] }
     fig = express.bar(data, x='index', y="Selection probability", hover_data=['selected','label'], color='selected',color_discrete_map={True:colors["selected"],False:colors["unselected"]})
     fig.update_layout(shapes=[
-                    dict(type= 'line', y0= threshold, y1= threshold, x0= 0, x1= len(distribution),line_color=colors["threshold"] )  
+                    dict(type= 'line', y0= threshold, y1= threshold, x0= 0, x1= len(distribution[reduc]),line_color=colors["threshold"] )  
                             ])
     offline.plot(fig, filename = os.path.join(directory, name), auto_open=False)
 
 
 def plot_stability_path(lambdas, D_path, selected, threshold,method,labels,directory,name):
-    N,d = len(lambdas),len(selected)
-    data = { "lambda":np.repeat(lambdas,d), "Selection Probability":[],"selected":list(selected)*N,"labels":list(labels)*N}
-    for i in range(len(lambdas)):
-        data["Selection Probability"].extend(D_path[i])
+    N = len(lambdas)
+    D_path = np.array(D_path)
+    reduction = D_path[-1,:]>0.05
+    reduc_selected  = selected[reduction]
+    d = len(reduc_selected)
+    reduc_D_path = D_path[:,reduction]
+    data = { "lambda":np.repeat(lambdas,d), "Selection Probability":[],"selected":list(reduc_selected)*N,"labels":list(labels[reduction])*N}
+    for i in range(N):
+        data["Selection Probability"].extend(reduc_D_path[i])
     fig = express.line(data, x = "lambda", y = "Selection Probability",color="selected", line_group="labels",hover_name="labels",color_discrete_map={True:colors["selected"],False:colors["unselected"]})
     fig.update_layout(title = "Stability selection profile across lambda-path with method "+ method, 
                     shapes=[ dict(type= 'line', y0= threshold, y1= threshold, x0= 0, x1= 1,line_color=colors["threshold"] ) ] 

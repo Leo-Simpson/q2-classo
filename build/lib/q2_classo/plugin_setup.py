@@ -165,9 +165,9 @@ plugin.methods.register_function(
 plugin.visualizers.register_function(
     function=summarize,
     inputs={'problem':CLASSOProblem,'taxa': FeatureData[Taxonomy]},
-    parameters={},
+    parameters={'maxplot':Int},
     input_descriptions={'problem': 'classo problem object containing the solution of the regression','taxa':'Taxonomic table in order to build matrix A and then change the problem to the new formulation (with log(X)A instead of log(X))'},
-    parameter_descriptions={},
+    parameter_descriptions={'maxplot':"maximum number of point in one bar plot ie maximum number of coefficient plotted in StabSel profile or in beta plots"},
     name='summarize',
     description=('Summarize the object created by the regression with its characteristics')
 )
@@ -247,9 +247,10 @@ def _4(ff: TSVTaxonomyFormat) -> skbio.TreeNode:
                      child = skbio.TreeNode(tax, length=1)
                      node.append(child)
                      node = child
-                
-
-            node.append(skbio.TreeNode('Beta%i'%line, length=1))
+            
+            #node.append(skbio.TreeNode('Beta%i'%line, length=1))
+            node.append(skbio.TreeNode(id_, length=1))
+            
             line += 1
 
     return root
