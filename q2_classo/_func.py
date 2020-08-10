@@ -189,8 +189,8 @@ def regress(features : pd.DataFrame,
             intercept  : bool      = True) -> classo_problem :
 
     
-    complete_y = y.to_dataframe()
-
+    complete_y = y.to_series()
+    complete_y = complete_y[~complete_y.isna()]
 
     features, pdY = features.align(y.to_series(), join='inner',axis=0)
     missing = pdY.isna()
