@@ -23,8 +23,8 @@ dir_form = os.path.join(dir_path, 'form')
 colors = {"threshold":"red", "selected":"green", "unselected":"blue"}
 
 
-def summarize(output_dir: str, problem : zarr.hierarchy.Group, taxa : skbio.TreeNode = None, maxplot : int =200):
-    context = build_context(output_dir,problem, taxa,maxplot)
+def summarize(output_dir: str, problem : zarr.hierarchy.Group, taxa : skbio.TreeNode = None, maxplot : int =200, predictions : zarr.hierarchy.Group = None):
+    context = build_context(output_dir,problem, predictions, taxa,maxplot)
 
     index = os.path.join(assets, 'index.html')
     overview_template = os.path.join(assets, 'overview.html')
@@ -39,7 +39,7 @@ def summarize(output_dir: str, problem : zarr.hierarchy.Group, taxa : skbio.Tree
     
 
 
-def build_context(output_dir,problem,taxa,max_number):
+def build_context(output_dir,problem, predictions,taxa,max_number):
     t = time()
 
 
@@ -68,7 +68,8 @@ def build_context(output_dir,problem,taxa,max_number):
         'concomitant': problem['formulation'].attrs['concomitant'],
         'with_tree' : not taxa is None,
         #'tree'  : tree,
-        'n' : len(problem['data/X']),
+        'ntotal' : len(problem['data/complete_labels']),
+        'ntrain' : len(problem['data/X']),
         'd' : len(problem['data/X'][0]),
         'k' : len(problem['data/C'])
     }
@@ -81,6 +82,11 @@ def build_context(output_dir,problem,taxa,max_number):
 
     context['dico']=dico
     dico_ms = problem['model_selection'].attrs.asdict()
+
+    y = pd.DataFrame(data=np.array(problem['data/complete_y']), index=list(problem['data/complete_labels']), columns=['sample'])
+    train_labels =  list(problem['data/training_labels'])
+    if not predictions is None :
+        predict_labels = np.array(predictions['sample_labels'])
 
 
     if dico_ms['PATH']:
@@ -98,8 +104,15 @@ def build_context(output_dir,problem,taxa,max_number):
 
         context['dicopath']= dico_path
 
+        
         plot_path(np.array(problem['solution/PATH/BETAS']),SIGMAS,problem['solution/PATH/LAMBDAS'],output_dir,labels,"beta-path.html","sigma-path.html")
 
+        if not predictions is None and predictions.attrs['PATH']:
+            dico_path['prediction']=True
+            plot_predict_path(np.array(predictions['YhatPATH']), y, np.array(problem['solution/PATH/LAMBDAS']),train_labels, output_dir,"predict-path.html",r"L2 error of the prediction on testing set")
+            
+        else : 
+            dico_path['prediction']=False
 
     if dico_ms['CV']:
         context['cv'] = True
@@ -121,6 +134,13 @@ def build_context(output_dir,problem,taxa,max_number):
 
         plot_beta(np.array(problem['solution/CV/refit']),output_dir,labels,'cv-refit.html',r"Refitted coefficients of beta after CV model selection finds lambda = "+str(lam),max_number)
         plot_cv(xGraph, yGraph,dico_cv['index_1SE'],dico_cv['index_min'],standard_error, output_dir, 'cv-graph.html')
+
+        if not predictions is None and predictions.attrs['CV']:
+            dico_cv['prediction']=True
+            yhat = pd.DataFrame(data = np.array(predictions['YhatCV']), index = predict_labels, columns = ['prediction'] )
+            plot_predict(yhat, y, train_labels, output_dir,'cv-yhat.html',r"Prediction")
+        else : 
+            dico_cv['prediction']= False
 
 
     if dico_ms['StabSel']:
@@ -149,6 +169,12 @@ def build_context(output_dir,problem,taxa,max_number):
             plot_stability_path(problem['solution/StabSel/lambdas_path'], problem['solution/StabSel/distribution_path'],
                                 selected_param,dico_stabsel['threshold'],dico_stabsel['method'],labels, output_dir, 'stabsel-path.html')
 
+        if not predictions is None and predictions.attrs['StabSel']:
+            dico_stabsel['prediction']=True
+            yhat = pd.DataFrame(data = np.array(predictions['YhatStabSel']), index = predict_labels, columns = ['prediction'] )
+            plot_predict(yhat, y,train_labels,output_dir,'stabsel-yhat.html',r"Prediction")
+        else: 
+            dico_stabsel['prediction']=False
 
 
     if dico_ms['LAMfixed']:
@@ -169,7 +195,14 @@ def build_context(output_dir,problem,taxa,max_number):
         plot_beta(np.array(problem['solution/LAMfixed/beta']),output_dir,labels,'lam-beta.html',r"Coefficients of beta at lambda = "+str(dico_lam['lam']),max_number)
         plot_beta(np.array(problem['solution/LAMfixed/refit']),output_dir,labels,'lam-refit.html',r"Reffited coefficients of beta at lambda = "+str(dico_lam['lam']),max_number)
 
-
+        if not predictions is None and predictions.attrs['LAMfixed']:
+            dico_lam['prediction']=True
+            yhat = pd.DataFrame(data = np.array(predictions['YhatLAMfixed']), index = predict_labels, columns = ['prediction'] )
+            yhatrefit = pd.DataFrame(data = np.array(predictions['YhatrefitLAMfixed']), index = predict_labels, columns = ['prediction'] )
+            plot_predict(yhat, y,train_labels,output_dir,'lam-yhat.html',r"Prediction")
+            plot_predict(yhatrefit, y,train_labels,output_dir,'lam-yhat-refit.html',r"Prediction")
+        else : 
+            dico_lam['prediction']=False
 
     return context
 
@@ -316,6 +349,41 @@ def plot_stability_path(lambdas, D_path, selected, threshold,method,labels,direc
                     shapes=[ dict(type= 'line', y0= threshold, y1= threshold, x0= 0, x1= 1,line_color=colors["threshold"] ) ] 
                             )
     offline.plot(fig, filename = os.path.join(directory, name), auto_open=False)
+
+
+def plot_predict(yhat, y,train_labels, directory,name,title):
+    indices = list(yhat.index)
+
+
+    df = pd.concat([yhat,y], axis=1, sort=False)
+
+    df['training'] = [(i in train_labels) for i in df.index]
+    #df = df.loc[~df['training']]
+
+    fig= express.scatter(df, x='prediction',y='sample', color = 'training')
+
+    fig.add_trace(graph_objects.Scatter(x=[0,np.max(yhat.values)], y=[0,np.max(yhat.values)],
+                    mode='lines',
+                    name='identity'))
+
+
+    fig.update_layout(title= title)
+    offline.plot(fig, filename = os.path.join(directory, name), auto_open=False)
+
+
+def plot_predict_path(Yhat, y,lambdas,train_labels, directory,name,title):
+    test_slice = np.array([(not label in train_labels) for label in y.index])
+    y_data = y.values[test_slice,0]
+    Y_pred = Yhat[:,test_slice]
+    error = np.linalg.norm(Y_pred-y_data,axis=1)
+    fig = graph_objects.Figure(layout_title_text=title)
+    fig.add_trace(graph_objects.Scatter(x=lambdas, y=error,name="L2 error over test set"))
+    fig.update_xaxes(title_text=r"lambda")
+    fig.update_yaxes(title_text=r"L2 error")
+    offline.plot(fig, filename = os.path.join(directory, name), auto_open=False)
+
+    
+
 
 
 

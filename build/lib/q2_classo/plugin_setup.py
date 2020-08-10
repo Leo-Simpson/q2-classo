@@ -4,7 +4,7 @@ from qiime2.plugin import (Plugin, Int, Float, Range, Metadata, Str, Bool,
 
 import csv
 import skbio
-from q2_types.feature_table import FeatureTable, Composition, BIOMV210Format,BIOMV210DirFmt, Frequency
+from q2_types.feature_table import FeatureTable, Composition, BIOMV210Format,BIOMV210DirFmt, Frequency, Design
 from q2_types.feature_data import TSVTaxonomyFormat, FeatureData, Taxonomy
 import qiime2
 from . import  *
@@ -31,7 +31,7 @@ description=('This is QIIME 2 plugin that enables sparse and robust linear regre
 
 CLASSOProblem    = SemanticType("CLASSOProblem")
 ConstraintMatrix = SemanticType("ConstraintMatrix")
-Design           = SemanticType('Design', variant_of=FeatureTable.field['content'])
+#Design           = SemanticType('Design', variant_of=FeatureTable.field['content'])
 
 
 plugin.register_formats(CLASSOProblemDirectoryFormat,ConstraintDirectoryFormat)
@@ -40,9 +40,9 @@ plugin.register_semantic_type_to_format(ConstraintMatrix,
 plugin.register_semantic_type_to_format(CLASSOProblem, 
                                         artifact_format=CLASSOProblemDirectoryFormat)
 
-plugin.register_semantic_type_to_format(FeatureTable[Design],artifact_format=BIOMV210DirFmt)
+#plugin.register_semantic_type_to_format(FeatureTable[Design],artifact_format=BIOMV210DirFmt)
 
-plugin.register_semantic_types(CLASSOProblem, ConstraintMatrix, Design)
+plugin.register_semantic_types(CLASSOProblem, ConstraintMatrix)
 
 
 # generate_data
@@ -161,12 +161,32 @@ plugin.methods.register_function(
            )
 
 
+# predict
+plugin.methods.register_function(
+           function=predict,
+           inputs={'features': FeatureTable[Design], 'problem' : CLASSOProblem},
+           parameters={},
+           outputs= [('predictions',CLASSOProblem)],
+           input_descriptions={'features': 'Matrix representing the data of the problem',
+                               'problem': 'output of regress or classify that contains the solutions : Directory format that will contain all information about the problem solved',
+                                #'taxa':'Taxonomic table in order to build matrix A and then change the problem to the new formulation (with log(X)A instead of log(X))'
+                                },
+           parameter_descriptions={},
+           output_descriptions= {'predictions':"Directory format that contains the predictions on each model selection computed"},
+           name='predict',
+           description=("The function computes a prediction of the output y with respect to the feature table inputed, and the model selection computed in problem")
+           #citations=[citations['Weiss2017']]
+           )
+
+
 #summarize
 plugin.visualizers.register_function(
     function=summarize,
-    inputs={'problem':CLASSOProblem,'taxa': FeatureData[Taxonomy]},
+    inputs={'problem':CLASSOProblem,'taxa': FeatureData[Taxonomy], 'predictions':CLASSOProblem},
     parameters={'maxplot':Int},
-    input_descriptions={'problem': 'classo problem object containing the solution of the regression','taxa':'Taxonomic table in order to build matrix A and then change the problem to the new formulation (with log(X)A instead of log(X))'},
+    input_descriptions={'problem': 'classo problem object containing the solution of the regression',
+                        'taxa':'Taxonomic table in order to build matrix A and then change the problem to the new formulation (with log(X)A instead of log(X))',
+                        'predictions':'classo problem object containing the predictions according to the model selections computed if the function predict has been used'},
     parameter_descriptions={'maxplot':"maximum number of point in one bar plot ie maximum number of coefficient plotted in StabSel profile or in beta plots"},
     name='summarize',
     description=('Summarize the object created by the regression with its characteristics')
@@ -196,7 +216,18 @@ def _0(obj: classo_problem) -> CLASSOProblemDirectoryFormat :
     return ff 
 
 @plugin.register_transformer
-def _1(ff : ZarrProblemFormat) -> zarr.hierarchy.Group : 
+def _1(obj: prediction_data) -> CLASSOProblemDirectoryFormat : 
+    ff = CLASSOProblemDirectoryFormat()
+    zipfile = str(ff.path/'problem.zip')
+    store = zarr.ZipStore(zipfile,mode='w')
+    root = zarr.open(store=store)
+    to_zarr(obj,'predictions',root)
+    store.close()
+    return ff 
+
+
+@plugin.register_transformer
+def _2(ff : ZarrProblemFormat) -> zarr.hierarchy.Group : 
     # for visualizers
     store = zarr.ZipStore(str(ff),mode='r')
     root = zarr.open(store=store)
@@ -206,7 +237,7 @@ def _1(ff : ZarrProblemFormat) -> zarr.hierarchy.Group :
 
 
 @plugin.register_transformer
-def _2(obj : np.ndarray) -> ConstraintDirectoryFormat :
+def _3(obj : np.ndarray) -> ConstraintDirectoryFormat :
     # for C in generate data, or generate constraint
     ff = ConstraintDirectoryFormat()
     filename = str(ff.path/'cmatrix.zip')
@@ -215,14 +246,14 @@ def _2(obj : np.ndarray) -> ConstraintDirectoryFormat :
 
 
 @plugin.register_transformer
-def _3(obj : ConstraintFormat) -> np.ndarray : 
+def _4(obj : ConstraintFormat) -> np.ndarray : 
     # for C in regress
     return zarr.load(str(obj))
 
 
 
 @plugin.register_transformer
-def _4(ff: TSVTaxonomyFormat) -> skbio.TreeNode:
+def _5(ff: TSVTaxonomyFormat) -> skbio.TreeNode:
     # transformer for taxa tree 
     root = skbio.TreeNode('root', length=0)
     line = 0

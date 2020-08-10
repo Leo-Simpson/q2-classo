@@ -50,6 +50,17 @@
             </div>
 
 
+        {% if dicolam.prediction %}
+            <h3>Prediction profile before refit </h3>
+                <div>
+                    <iframe src="./lam-yhat.html" class = "frame" ></iframe>
+                </div>
+
+            <h3>Prediction profile after refit </h3>
+                <div>
+                    <iframe src="./lam-yhat-refit.html" class = "frame" ></iframe>
+                </div>
+        {% endif %}
     </div>
 </div>
 

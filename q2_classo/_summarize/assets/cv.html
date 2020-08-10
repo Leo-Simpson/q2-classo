@@ -44,6 +44,12 @@
 
         <h3>Graphic of cross validation</h3>
         <iframe src="./cv-graph.html" class="frame"></iframe>
+
+        
+        {% if dicocv.prediction %}
+        <h3>Prediction profile</h3>
+        <iframe src="./cv-yhat.html" class="frame"></iframe>
+        {% endif %}
         
     </div>
 </div>

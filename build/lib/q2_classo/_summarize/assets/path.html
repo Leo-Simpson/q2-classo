@@ -43,6 +43,13 @@
             </div>
 
         {% endif %}
+
+        {% if dicopath.prediction %}
+        <h3>Prediction profile</h3>
+        <div>
+            <iframe src="./predict-path.html" class = "frame" ></iframe>
+        </div>
+        {% endif %}
         
     </div>
 </div>

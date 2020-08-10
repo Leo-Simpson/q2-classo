@@ -55,6 +55,11 @@
             {% endif %}
             <h3>Beta-solution after refit </h3>
             <iframe src="./stabSel-refit.html" class="frame"></iframe>
+
+            {% if dicostabsel.prediction %}
+            <h3>Prediction profile </h3>
+            <iframe src="./stabsel-yhat.html" class="frame"></iframe>
+            {% endif %}
             
             {% if dico.with_tree %}
             <h3>Selected parameters on the taxonomic tree </h3>

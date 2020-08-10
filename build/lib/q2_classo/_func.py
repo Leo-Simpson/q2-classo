@@ -1,4 +1,5 @@
 import numpy as np
+import zarr
 from classo import *
 
 
@@ -14,6 +15,14 @@ from ._tree import tree_to_matrix
 
 
 # TODO : change C type to pandas dataframe
+
+
+class prediction_data :
+    def __init__(self,PATH=False, CV=False, StabSel=False, LAMfixed=False):
+        self.PATH = PATH
+        self.CV = CV
+        self.StabSel = StabSel
+        self.LAMfixed = LAMfixed
 
 
 def generate_data(taxa : skbio.TreeNode = None,
@@ -180,27 +189,22 @@ def regress(features : pd.DataFrame,
             intercept  : bool      = True) -> classo_problem :
 
     
+    complete_y = y.to_dataframe()
+
+
     features, pdY = features.align(y.to_series(), join='inner',axis=0)
     missing = pdY.isna()
+    training_labels = list(pdY[~missing].index)
     label_missing = list(pdY.index[missing])
     if label_missing : 
        print("{} are missing in y ".format(label_missing))
     Y = pdY[~missing].to_numpy()
     X = features.values[~missing, :]
-    print(do_yshift)
-
-
-
-
-
-
-    
-    
-
 
     print(Y.shape,X.shape)
 
     if do_yshift : Y = Y - np.mean(Y)  
+
 
     problem = classo_problem(X, Y , C = c, label = list(features.columns) )
     problem.formulation.huber       = huber
@@ -252,6 +256,13 @@ def regress(features : pd.DataFrame,
         else                : param.lam = 'theoretical'
 
     problem.solve()
+
+
+    
+    problem.data.complete_y = complete_y.values
+    problem.data.complete_labels = list(complete_y.index)
+    problem.data.training_labels = training_labels
+
 
     return problem
     
@@ -382,6 +393,62 @@ def verfify_binary(y):
         raise ValueError("Metadata column y is supposed to be binary, but takes more than 2 different values : "+ ' ; '.join(l))
 
 
+
+
+def predict(features : pd.DataFrame, problem : zarr.hierarchy.Group) -> prediction_data :
+    labels = np.array(problem['data/label'])
+    n, d  = features.shape[0], len(labels)
+    X = np.zeros((n,d))
+    for i,label in enumerate(labels):
+        if label == 'intercept' : X[:,i] = np.ones(n)
+        else : X[:,i] = features[label]
+        
+
+    classification = problem['formulation'].attrs['classification']
+    dico_ms = problem['model_selection'].attrs.asdict()
+    predictions = prediction_data(PATH= problem['model_selection'].attrs['PATH'],
+                                  CV = problem['model_selection'].attrs['CV'],
+                                  StabSel = problem['model_selection'].attrs['StabSel'],
+                                  LAMfixed = problem['model_selection'].attrs['LAMfixed']   )
+
+    predictions.sample_labels = list(features.index)
+
+
+
+    if predictions.PATH:
+        beta_path = np.array(problem['solution/PATH/BETAS'])
+        nlam = len(beta_path)
+        Y_path = np.zeros((nlam,n))
+        for i in range(nlam):
+            Y_path[i,:] = X.dot(beta_path[i])
+        predictions.YhatPATH = Y_path
+        
+
+    if predictions.CV:
+        beta_refit = np.array(problem['solution/CV/refit'])
+        Yhat = X.dot(beta_refit)
+        predictions.YhatCV = Yhat
+
+
+
+    if predictions.StabSel:
+        beta_refit = np.array(problem['solution/StabSel/refit'])
+        Yhat = X.dot(beta_refit)
+        predictions.YhatStabSel = Yhat
+
+
+
+    if predictions.LAMfixed:
+        beta = np.array(problem['solution/LAMfixed/beta'])
+        beta_refit = np.array(problem['solution/LAMfixed/refit'])
+        Yhat,Yhatrefit = X.dot(beta), X.dot(beta_refit)
+        predictions.YhatLAMfixed =  Yhat
+        predictions.YhatrefitLAMfixed = Yhatrefit
+    
+    return predictions
+
+
+
 """
     labels = list(pdY.index)
     x, y , missing = [] , [], []
@@ -395,3 +462,5 @@ def verfify_binary(y):
     if missing : 
         print("{} are missing in y ".format(missing))
 """
+
+
