@@ -85,3 +85,90 @@ qiime classo summarize \
 ```shell
 qiime tools view problem.qzv
 ```
+
+
+## Commands for workflow on real data
+
+Here, one can do the following commands in the folder example/data_qiime : 
+
+
+#### CLR transform
+```shell
+qiime classo transform-features \
+	 --i-features table.qza \
+	 --o-x xclr.qza
+```
+
+#### Aggregate data thanks to a taxonomic table
+```shell
+qiime classo add-taxa \
+	--i-features xclr.qza  \
+	--i-taxa taxonomy.qza \
+	--o-x xtaxa.qza --o-ca ctaxa.qza
+
+```
+
+
+#### Split data into training and testing sets
+```shell
+qiime sample-classifier split-table \
+	--i-table xtaxa.qza \
+	--m-metadata-file sample-metadata-complete.tsv \
+	--m-metadata-column sCD14  \
+	--p-test-size 0.2 \
+	--p-random-state 123 \
+	--p-stratify False \
+	--o-training-table xtraining \
+	--o-test-table features-test
+```
+
+
+#### Apply classo to the training set to solve the linear regression problem
+```shell
+qiime classo regress  \
+	 --i-features xtraining.qza \
+	--i-c ctaxa.qza \
+	--m-y-file sample-metadata-complete.tsv \
+	--m-y-column sCD14  \
+	--p-concomitant False \
+	--p-stabsel-threshold 0.5 \
+	--p-cv-seed 123456 \
+	--p-cv-one-se False \
+	--o-result problemtaxa.qza
+```
+
+
+#### Compute the prediction on the whole dataset, for each model selection chosen
+```shell
+qiime classo predict \
+	--i-features xtaxa.qza \
+	--i-problem problemtaxa.qza \
+	--o-predictions predictions.qza
+```
+
+
+#### Compute the visualisation of the problem solved
+```shell
+qiime classo summarize \
+  --i-problem problemtaxa.qza \
+  --i-taxa taxonomy.qza \
+ --i-predictions predictions.qza \
+  --o-visualization problemtaxa.qzv
+```
+
+
+#### Visualization 
+
+```shell
+qiime tools view problemtaxa.qzv
+```
+
+Alternatively, one can drag&drop the file problemtaxa.qzv on : https://view.qiime2.org
+Thanks to this alternative, one can also track the workflow that the qiime2 artifact did. 
+
+
+
+
+
+
+
