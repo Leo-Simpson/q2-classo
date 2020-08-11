@@ -119,7 +119,7 @@ qiime sample-classifier split-table \
 	--p-random-state 123 \
 	--p-stratify False \
 	--o-training-table xtraining \
-	--o-test-table features-test
+	--o-test-table xtest
 ```
 
 
@@ -134,14 +134,14 @@ qiime classo regress  \
 	--p-stabsel-threshold 0.5 \
 	--p-cv-seed 123456 \
 	--p-cv-one-se False \
-	--o-result problemtaxa.qza
+	--o-result problemtaxa
 ```
 
 
-#### Compute the prediction on the whole dataset, for each model selection chosen
+#### Compute the prediction on the testing set, for each model selection chosen
 ```shell
 qiime classo predict \
-	--i-features xtaxa.qza \
+	--i-features xtest.qza \
 	--i-problem problemtaxa.qza \
 	--o-predictions predictions.qza
 ```
