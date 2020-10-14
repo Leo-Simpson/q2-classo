@@ -1,6 +1,9 @@
 # q2-classo
 
 
+
+
+
 ## Commands to run an example
 
 
@@ -18,6 +21,13 @@ source activate qiime2-2020.2
 - zarr 
 - plotly
 - c-lasso
+
+
+
+
+
+
+
 
 #### To find an example of taxonomy : 
 
@@ -91,6 +101,7 @@ qiime tools view problem.qzv
 
 Here, one can do the following commands in the folder example/data_qiime : 
 
+The workflow starts from a file ```table.qza```already provided , a taxonomic table ```taxonomy.qza``` and a metadata sample-metadata-complete
 
 #### CLR transform
 ```shell
