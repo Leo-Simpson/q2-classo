@@ -252,7 +252,7 @@ def plot_path(BETAS, SIGMAS, LAMBDAS, directory, labels, name1, name2):
     maxB = np.amax(abs(BETAS))
     start = int(labels[0]=="intercept")
     for i in range(start,len(BETAS[0])):
-        if np.amax(abs(BETAS[:,i]))>maxB*0.01 : 
+        if np.amax(abs(BETAS[:,i]))>maxB*1e-4 : 
             fig.add_trace(graph_objects.Scatter(x=LAMBDAS, y=BETAS[:,i],
                                 name=labels[i]))
     fig.update_xaxes(title_text=r"lambda")

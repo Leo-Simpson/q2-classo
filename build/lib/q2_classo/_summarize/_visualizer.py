@@ -83,8 +83,10 @@ def build_context(output_dir,problem, predictions,taxa,max_number):
     context['dico']=dico
     dico_ms = problem['model_selection'].attrs.asdict()
 
+
     y = pd.DataFrame(data=np.array(problem['data/complete_y']), index=list(problem['data/complete_labels']), columns=['sample'])
     train_labels =  list(problem['data/training_labels'])
+  
     if not predictions is None :
         predict_labels = np.array(predictions['sample_labels'])
 
@@ -109,7 +111,7 @@ def build_context(output_dir,problem, predictions,taxa,max_number):
 
         if not predictions is None and predictions.attrs['PATH']:
             dico_path['prediction']=True
-            plot_predict_path(np.array(predictions['YhatPATH']), y, np.array(problem['solution/PATH/LAMBDAS']),train_labels, output_dir,"predict-path.html",r"L2 error of the prediction on testing set")
+            plot_predict_path(np.array(predictions['YhatPATH']), y, np.array(problem['solution/PATH/LAMBDAS']),train_labels, predict_labels, output_dir,"predict-path.html",r"L2 error of the prediction on testing set")
             
         else : 
             dico_path['prediction']=False
@@ -250,7 +252,7 @@ def plot_path(BETAS, SIGMAS, LAMBDAS, directory, labels, name1, name2):
     maxB = np.amax(abs(BETAS))
     start = int(labels[0]=="intercept")
     for i in range(start,len(BETAS[0])):
-        if np.amax(abs(BETAS[:,i]))>maxB*0.01 : 
+        if np.amax(abs(BETAS[:,i]))>maxB*1e-4 : 
             fig.add_trace(graph_objects.Scatter(x=LAMBDAS, y=BETAS[:,i],
                                 name=labels[i]))
     fig.update_xaxes(title_text=r"lambda")
@@ -352,9 +354,6 @@ def plot_stability_path(lambdas, D_path, selected, threshold,method,labels,direc
 
 
 def plot_predict(yhat, y,train_labels, directory,name,title):
-    indices = list(yhat.index)
-
-
     df = pd.concat([yhat,y], axis=1, sort=False)
 
     df['training'] = [(i in train_labels) for i in df.index]
@@ -371,11 +370,13 @@ def plot_predict(yhat, y,train_labels, directory,name,title):
     offline.plot(fig, filename = os.path.join(directory, name), auto_open=False)
 
 
-def plot_predict_path(Yhat, y,lambdas,train_labels, directory,name,title):
-    test_slice = np.array([(not label in train_labels) for label in y.index])
-    y_data = y.values[test_slice,0]
-    Y_pred = Yhat[:,test_slice]
-    error = np.linalg.norm(Y_pred-y_data,axis=1)
+def plot_predict_path(Yhat, y,lambdas,train_labels, predict_labels, directory,name,title):
+    slice_sample = np.array([(not label in train_labels and label in predict_labels) for label in y.index])
+    slice_pred = np.array([  (not label in train_labels and label in y.index) for label in predict_labels])
+    print("pred",sum(slice_pred),"sample",sum(slice_sample))
+    y_sample = y.values[slice_sample,0]
+    Y_pred = Yhat[:,slice_pred]
+    error = np.linalg.norm(Y_pred-y_sample,axis=1)
     fig = graph_objects.Figure(layout_title_text=title)
     fig.add_trace(graph_objects.Scatter(x=lambdas, y=error,name="L2 error over test set"))
     fig.update_xaxes(title_text=r"lambda")
