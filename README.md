@@ -97,9 +97,20 @@ qiime tools view problem.qzv
 ```
 
 
-## Commands for workflow on real data
+## Commands for workflow on real data : Immune marker prediction in HIV patients
 
-Here, one can do the following commands in the folder example/data_qiime : 
+
+Bien, J., Yan, X., Simpson, L. and Müller, C. (2020). Tree-Aggregated Predictive Modeling of Microbiome Data : 
+
+"
+we consider soluble CD14 (sCD14) measurements in HIV patients as the variable to predict and learn an interpretable regression model from gut microbial amplicon data. sCD14 is a marker of microbial translocation and has been shown to be an independent predictor of mortality in HIV infection (Sandler et al., 2011). Following Rivera-Pinto et al. (2018), we analyze a HIV cohort of n = 151 patients where sCD14 levels (in pg/ml units) and fecal 16S rRNA amplicon data were measured.
+"
+
+We provide here a q2-classo workflow to study possible prediction of sCD14 using all available p = 539 bacterial and archaeal OTUs. 
+
+
+
+One can do the following commands in the folder example/data_qiime : 
 
 The workflow starts from a file ```table.qza```already provided , a taxonomic table ```taxonomy.qza``` and a metadata sample-metadata-complete
 
