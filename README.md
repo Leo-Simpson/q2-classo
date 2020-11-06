@@ -57,7 +57,7 @@ qiime classo generate-data \
 
 #### CLR transform
 ```shell
-qiime classo features-clr \
+qiime classo transform-features \
   --i-features randomx.qza \
   --o-x xclr.qza
 ```
