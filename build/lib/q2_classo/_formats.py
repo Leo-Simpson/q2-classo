@@ -2,21 +2,29 @@ import qiime2.plugin.model as model
 import zarr
 import numpy as np
 
+
 class ZarrProblemFormat(model.BinaryFileFormat):
-    def validate(self,level):
+    def validate(self, level):
         pass
 
 
 CLASSOProblemDirectoryFormat = model.SingleFileDirectoryFormat(
-    'CLASSOProblemDirectoryFormat', 'problem.zip', format=ZarrProblemFormat
+    "CLASSOProblemDirectoryFormat", "problem.zip", format=ZarrProblemFormat
 )
 
+
 class ConstraintFormat(model.BinaryFileFormat):
-    def validate(self,level):
+    def validate(self, level):
+        pass
+
+class WeightsFormat(model.BinaryFileFormat):
+    def validate(self, level):
         pass
 
 ConstraintDirectoryFormat = model.SingleFileDirectoryFormat(
-    'ConstraintDirectoryFormat', 'cmatrix.zip', format=ConstraintFormat
+    "ConstraintDirectoryFormat", "cmatrix.zip", format=ConstraintFormat
 )
 
-
+WeightsDirectoryFormat = model.SingleFileDirectoryFormat(
+    "WeightsDirectoryFormat", "cmatrix.zip", format=WeightsFormat
+)

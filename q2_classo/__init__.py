@@ -19,6 +19,8 @@ from ._formats import (
     ZarrProblemFormat,
     ConstraintDirectoryFormat,
     ConstraintFormat,
+    WeightsDirectoryFormat,
+    WeightsFormat
 )
 from ._summarize import summarize
 from classo import classo_problem, to_zarr

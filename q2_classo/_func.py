@@ -108,28 +108,31 @@ def transform_features(
 
 
 def add_taxa(
-    features: pd.DataFrame, c: np.ndarray = None, taxa: skbio.TreeNode = None
+    features: pd.DataFrame, weights: np.ndarray = None, taxa: skbio.TreeNode = None
 ) -> (pd.DataFrame, np.ndarray):
 
     X = features.values
     label = list(features.columns)
     A, label_new = tree_to_matrix(taxa, label, with_repr=True)
-    print(A.shape)
-    X_new = X.dot(A)
-    if c is None:
-        C_new = np.ones((1, len(A))).dot(A)
+    nleaves = np.sum(A,axis=0)
+    X_new = X.dot(A)/nleaves
+    if weights is None:
+        w_new = 1./nleaves
     else:
-        C_new = c.dot(A)
+        w_new = weights/nleaves
     dfx = pd.DataFrame(
         data=X_new, index=list(features.index), columns=label_new
     )
 
-    return dfx, C_new
+    return dfx, w_new
 
 
 def _code_columns(df, column_map, norm=1.0, normalization=False):
+    # this function takes some dataframe, and transform it so that
+    # one can add it to the big dataframe of features
+    # ie normalization / transform for categorical
     def _code_col(series):
-        type_ = column_map[series.index.name].type
+        type_ = column_map[series.name].type
 
         if type_ == "numeric":
             vect = series.to_numpy()
@@ -140,13 +143,8 @@ def _code_columns(df, column_map, norm=1.0, normalization=False):
             return vect
         elif type_ == "categorical":
             vect = series.to_numpy()
-            # if vect has a NaN ==> raise error
-            verfify_binary(vect)
-            vect = (
-                vect == vect[0]
-            )  # set the vector to true if the value is the
-            vect = 2 * Y - 1  # transform it to a vector of 1 and -1
-            return vect
+            to_add = categorical_to_df(series)
+            return to_add
         else:
             raise ValueError("Unknown type.")
 
@@ -167,15 +165,20 @@ def add_covariates(
         norm = 1
         normalization = False
 
-    covariates_df = covariates.to_dataframe()[to_add]
+    
+    covariates_df = covariates.to_dataframe()
+    covariates_df = covariates_df[to_add]
     covariates_df = _code_columns(
-        covariate_df, covariates.columns, norm, normalization
+        covariates_df, covariates.columns, norm, normalization
     )
     if features is not None:
         # features, covariates_df
         # = features.align(covariates_df, join='inner',axis=0)
         X = pd.concat([features, covariates_df], axis=1, join="inner")
-
+        d = len(features.columns)
+        if c is None:
+            c = np.ones((1,d))
+        
         c_new = np.zeros((len(c), len(c[0]) + len(to_add)))
         c_new[:, : len(c[0])] = c
     else:
@@ -189,6 +192,7 @@ def regress(
     features: pd.DataFrame,
     y: qiime2.NumericMetadataColumn,
     c: np.ndarray = None,
+    weights:np.ndarray = None,
     do_yshift: bool = False,
     # taxa: skbio.TreeNode = None,
     # PATH parameters :
@@ -253,21 +257,23 @@ def regress(
     problem.formulation.concomitant = concomitant
     problem.formulation.rho = rho
     problem.formulation.intercept = intercept
+    d = X.shape[1]
+    if weights is not None:
+        minw = min(weights)
+        if len(weights) < d:
+            problem.formulation.w = np.concatenate([weights,minw*np.ones(d-len(weights))], axis=0)
+        else:
+            problem.formulation.w = weights[:d]
+
+
+
 
     problem.model_selection.PATH = path
     if path:
         param = problem.model_selection.PATHparameters
         param.numerical_method = path_numerical_method
         param.n_active = path_n_active
-        if path_lambdas is None:
-            param.lambdas = np.array(
-                [
-                    10 ** (np.log10(path_lamin_log) * float(i) / path_nlam_log)
-                    for i in range(0, path_nlam_log)
-                ]
-            )
-        else:
-            param.lambdas = path_lambdas
+        param.lambdas = path_lambdas
 
     problem.model_selection.CV = cv
     if cv:
@@ -276,10 +282,7 @@ def regress(
         param.seed = cv_seed
         param.oneSE = cv_one_se
         param.Nsubsets = cv_subsets
-        if cv_lambdas is None:
-            param.lambdas = np.linspace(1.0, 1e-3, 500)
-        else:
-            param.lambdas = cv_lambdas
+        param.lambdas = cv_lambdas
 
     problem.model_selection.StabSel = stabsel
     if stabsel:
@@ -309,7 +312,9 @@ def regress(
         else:
             param.lam = "theoretical"
 
+    print("start solve !")
     problem.solve()
+    print("finished solve ! ")
 
     problem.data.complete_y = complete_y.values
     problem.data.complete_labels = list(complete_y.index)
@@ -322,6 +327,7 @@ def classify(
     features: pd.DataFrame,
     y: qiime2.CategoricalMetadataColumn,
     c: np.ndarray = None,
+    weights:np.ndarray = None,
     # taxa: skbio.TreeNode = None,
     # PATH parameters :
     path: bool = True,
@@ -362,8 +368,14 @@ def classify(
     intercept: bool = True,
 ) -> classo_problem:
 
+    complete_y = y.to_series()
+    complete_y = complete_y[~complete_y.isna()]
+
+    print(sum(complete_y==complete_y[0]), len(complete_y))
+
     features, pdY = features.align(y.to_series(), join="inner", axis=0)
     missing = pdY.isna()
+    training_labels = list(pdY[~missing].index)
     label_missing = list(pdY.index[missing])
     if label_missing:
         print("{} are missing in y ".format(label_missing))
@@ -380,6 +392,14 @@ def classify(
     problem.formulation.huber = huber
     problem.formulation.rho_classification = rho
     problem.formulation.intercept = intercept
+    d = X.shape[1]
+    if weights is not None:
+        minw = min(weights)
+        if len(weights) < d:
+            problem.formulation.w = np.concatenate([weights,minw*np.ones(d-len(weights))], axis=0)
+        else:
+            problem.formulation.w = weights[:d]
+
 
     problem.model_selection.PATH = path
     if path:
@@ -438,6 +458,11 @@ def classify(
 
     problem.solve()
 
+    cy = complete_y.values
+    problem.data.complete_y = 2*(cy == cy[0])-1
+    problem.data.complete_labels = list(complete_y.index)
+    problem.data.training_labels = training_labels
+
     return problem
 
 
@@ -452,6 +477,15 @@ def verfify_binary(y):
             + "but takes more than 2 different values : "
             + " ; ".join(lis)
         )
+
+def categorical_to_df(col):
+    lis = []
+    for i in col:
+        if i not in lis:
+            lis.append(i)
+    data = {value : col == value for value in lis}
+    return pd.DataFrame(data=data, dtype=np.int8)
+
 
 
 def predict(

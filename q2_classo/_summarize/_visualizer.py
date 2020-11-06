@@ -54,6 +54,10 @@ def summarize(
 def build_context(output_dir, problem, predictions, taxa, max_number):
     t = time()
 
+    print("labels : ", np.array(problem["data/label"]))
+    print("C=", np.array(problem["data/C"] ))
+    print("weights : ", np.array(problem["formulation/w"]))
+
     labels = np.array(problem["data/label"])
     if problem["formulation"].attrs["intercept"]:
         features, c = (
@@ -674,8 +678,8 @@ def plot_predict(yhat, y, train_labels, directory, name, title):
 
     fig.add_trace(
         graph_objects.Scatter(
-            x=[0, np.max(yhat.values)],
-            y=[0, np.max(yhat.values)],
+            x=[np.min(yhat.values), np.max(yhat.values)],
+            y=[np.min(yhat.values), np.max(yhat.values)],
             mode="lines",
             name="identity",
         )

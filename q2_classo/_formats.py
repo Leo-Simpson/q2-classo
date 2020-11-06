@@ -17,7 +17,14 @@ class ConstraintFormat(model.BinaryFileFormat):
     def validate(self, level):
         pass
 
+class WeightsFormat(model.BinaryFileFormat):
+    def validate(self, level):
+        pass
 
 ConstraintDirectoryFormat = model.SingleFileDirectoryFormat(
     "ConstraintDirectoryFormat", "cmatrix.zip", format=ConstraintFormat
+)
+
+WeightsDirectoryFormat = model.SingleFileDirectoryFormat(
+    "WeightsDirectoryFormat", "cmatrix.zip", format=WeightsFormat
 )

@@ -57,16 +57,22 @@ plugin = Plugin(
 
 CLASSOProblem = SemanticType("CLASSOProblem")
 ConstraintMatrix = SemanticType("ConstraintMatrix")
+Weights = SemanticType("Weights")
 # Design =
 # SemanticType('Design', variant_of=FeatureTable.field['content'])
 
 
 plugin.register_formats(
-    CLASSOProblemDirectoryFormat, ConstraintDirectoryFormat
+    CLASSOProblemDirectoryFormat,
+    ConstraintDirectoryFormat, WeightsDirectoryFormat
 )
 plugin.register_semantic_type_to_format(
     ConstraintMatrix, artifact_format=ConstraintDirectoryFormat
 )
+plugin.register_semantic_type_to_format(
+    Weights, artifact_format=WeightsDirectoryFormat
+)
+
 plugin.register_semantic_type_to_format(
     CLASSOProblem, artifact_format=CLASSOProblemDirectoryFormat
 )
@@ -74,7 +80,7 @@ plugin.register_semantic_type_to_format(
 # plugin.register_semantic_type_to_format(
 #   FeatureTable[Design],artifact_format=BIOMV210DirFmt)
 
-plugin.register_semantic_types(CLASSOProblem, ConstraintMatrix)
+plugin.register_semantic_types(CLASSOProblem, ConstraintMatrix, Weights)
 
 
 # generate_data
@@ -142,14 +148,14 @@ plugin.methods.register_function(
     function=add_taxa,
     inputs={
         "features": FeatureTable[Design],
-        "c": ConstraintMatrix,
+        "weights": Weights,
         "taxa": FeatureData[Taxonomy],
     },
     parameters={},
-    outputs=[("x", FeatureTable[Design]), ("ca", ConstraintMatrix)],
+    outputs=[("x", FeatureTable[Design]), ("aweights", Weights)],
     input_descriptions={
         "features": "Matrix representing the data of the problem",
-        "c": "Constraint matrix, default is the zero-sum",
+        "weights": "Weights vector, default is the all one vector",
         "taxa": (
             "Taxonomic table in order to build matrix A"
             " and then change the problem to the new"
@@ -159,9 +165,10 @@ plugin.methods.register_function(
     parameter_descriptions={},
     output_descriptions={
         "x": "Matrix representing the data of the problem",
-        "ca": (
-            "Matrix representing the constraint of the "
-            "problem adapted to the taxonomy"
+        "aweights": (
+            "Weights vector rescaled"
+            "by dividing it for each node"
+            "by the number of leaves in the taxa tree"
         ),
     },
     name="add_taxa",
@@ -210,6 +217,7 @@ plugin.methods.register_function(
     inputs={
         "features": FeatureTable[Design],
         "c": ConstraintMatrix,
+        "weights": Weights,
         # 'taxa': FeatureData[Taxonomy]
     },
     parameters=regress_parameters,
@@ -217,6 +225,7 @@ plugin.methods.register_function(
     input_descriptions={
         "features": "Matrix representing the data of the problem",
         "c": "Constraint matrix, default is the zero-sum",
+        "weights": "Vector of weights for penalization",
         # 'taxa':'Taxonomic table in order to build matrix A
         # and then change the problem to the new formulation
         # (with log(X)A instead of log(X))'
@@ -245,6 +254,7 @@ plugin.methods.register_function(
     inputs={
         "features": FeatureTable[Design],
         "c": ConstraintMatrix,
+        "weights": Weights,
         # 'taxa': FeatureData[Taxonomy]
     },
     parameters=classify_parameters,
@@ -252,6 +262,7 @@ plugin.methods.register_function(
     input_descriptions={
         "features": "Matrix representing the data of the problem",
         "c": "Constraint matrix, default is the zero-sum",
+        "weights": "Vector of weights for penalization",
         # 'taxa':'Taxonomic table in order to build matrix A
         #  and then change the problem to the new formulation
         #  (with log(X)A instead of log(X))'
@@ -437,6 +448,23 @@ def _5(ff: TSVTaxonomyFormat) -> skbio.TreeNode:
             line += 1
 
     return root
+
+
+
+@plugin.register_transformer
+def _5(obj: np.ndarray) -> WeightsDirectoryFormat:
+    # for C in generate data, or generate constraint
+    ff = WeightsDirectoryFormat()
+    filename = str(ff.path / "cmatrix.zip")
+    zarr.save(filename, obj)
+    return ff
+
+
+@plugin.register_transformer
+def _6(obj: WeightsFormat) -> np.ndarray:
+    return zarr.load(str(obj))
+
+
 
 
 """

@@ -47,14 +47,14 @@
         <h2>Stability Selection profile</h2>
             {{dicostabsel.htmlstab}}
             <h4><a href="StabSel-prob.csv">Download stability selection profile as CSV</a></h4>
-            <iframe src="./stabSel-graph.html" class="frame"></iframe>
+            <iframe src="./stabsel-graph.html" class="frame"></iframe>
 
             {% if dicostabsel.with_path %}
                 <h3>Stabiliy Selection profile over lambdas path </h3>
-                <iframe src="./stabSel-path.html" class="frame"></iframe>
+                <iframe src="./stabsel-path.html" class="frame"></iframe>
             {% endif %}
             <h3>Beta-solution after refit </h3>
-            <iframe src="./stabSel-refit.html" class="frame"></iframe>
+            <iframe src="./stabsel-refit.html" class="frame"></iframe>
 
             {% if dicostabsel.prediction %}
             <h3>Prediction profile </h3>
@@ -63,7 +63,7 @@
             
             {% if dico.with_tree %}
             <h3>Selected parameters on the taxonomic tree </h3>
-            <iframe src="./StabSel-tree.html" class="frame"></iframe>
+            <iframe src="./stabsel-tree.html" class="frame"></iframe>
             {% endif %}
 
 
