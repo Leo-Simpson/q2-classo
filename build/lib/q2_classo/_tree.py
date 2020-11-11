@@ -86,7 +86,7 @@ def tree_to_matrix(tree, label, with_repr=False):
     order = []
     # list that will give the order in which the nodes are added
     # in the dicti, such that it will be easy to remove similar nodes
-    for i in range(d):
+    for i, name_leaf in enumerate(label):
         name_leaf = label[i]
         dicti[name_leaf] = np.zeros(d, dtype=bool)
         dicti[name_leaf][i] = True
@@ -271,6 +271,6 @@ def remove2(tree, node):
 def build_subtree(sktree, label_node):
     sub_sktree = sktree.copy()
     for node in sub_sktree.preorder():
-        if not node.name not in label_node:
+        if node.name not in label_node:
             remove2(sub_sktree, node)
     return sub_sktree

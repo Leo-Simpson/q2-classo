@@ -57,6 +57,16 @@
             <iframe src="./stabsel-refit.html" class="frame"></iframe>
 
             {% if dicostabsel.prediction %}
+            <h3>Prediction informations</h3>
+            <table class="table table-striped table-hover">
+                <tr><td> Number of sample :</td><td>{{ dicostabsel.prediction_table.samples }}</td></tr>
+                <tr><td> R square:</td><td>{{ dicostabsel.prediction_table.R }}</td></tr>
+                <tr><td> Number of positive in sample :</td><td>{{ dicostabsel.prediction_table.positive }}</td></tr>
+                <tr><td> Number of negative in sample :</td><td>{{ dicostabsel.prediction_table.negative }}</td></tr>
+                <tr><td> Number of false positive in sample :</td><td>{{ dicostabsel.prediction_table.FP }}</td></tr>
+                <tr><td> Number of false negative in sample :</td><td>{{ dicostabsel.prediction_table.FN }}</td></tr>
+            
+            </table>
             <h3>Prediction profile </h3>
             <iframe src="./stabsel-yhat.html" class="frame"></iframe>
             {% endif %}

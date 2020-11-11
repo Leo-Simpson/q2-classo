@@ -54,9 +54,9 @@ def summarize(
 def build_context(output_dir, problem, predictions, taxa, max_number):
     t = time()
 
-    print("labels : ", problem.data.label)
-    print("C=",problem.data.C)
-    print("weights : ", problem.formulation.w)
+    print("labels : ", np.array(problem["data/label"]))
+    print("C=", np.array(problem["data/C"] ))
+    print("weights : ", np.array(problem["formulation/w"]))
 
     labels = np.array(problem["data/label"])
     if problem["formulation"].attrs["intercept"]:
@@ -94,6 +94,7 @@ def build_context(output_dir, problem, predictions, taxa, max_number):
             problem["formulation"].attrs.asdict(), output_dir
         ),
         "concomitant": problem["formulation"].attrs["concomitant"],
+        "classification":problem["formulation"].attrs["classification"],
         "with_tree": taxa is not None,
         # 'tree'  : tree,
         "ntotal": len(problem["data/complete_labels"]),
@@ -168,6 +169,7 @@ def build_context(output_dir, problem, predictions, taxa, max_number):
                 output_dir,
                 "predict-path.html",
                 r"L2 error of the prediction on testing set",
+                classification=dico["classification"]
             )
 
         else:
@@ -224,6 +226,7 @@ def build_context(output_dir, problem, predictions, taxa, max_number):
             standard_error,
             output_dir,
             "cv-graph.html",
+            classification=dico["classification"]
         )
 
         if predictions is not None and predictions.attrs["CV"]:
@@ -241,6 +244,7 @@ def build_context(output_dir, problem, predictions, taxa, max_number):
                 "cv-yhat.html",
                 r"Prediction",
             )
+            dico_cv["prediction_table"] = make_dico_prediction(yhat,y, dico["classification"])
         else:
             dico_cv["prediction"] = False
 
@@ -333,6 +337,8 @@ def build_context(output_dir, problem, predictions, taxa, max_number):
                 "stabsel-yhat.html",
                 r"Prediction",
             )
+
+            dico_stabsel["prediction_table"] = make_dico_prediction(yhat,y, dico["classification"])
         else:
             dico_stabsel["prediction"] = False
 
@@ -407,6 +413,9 @@ def build_context(output_dir, problem, predictions, taxa, max_number):
                 "lam-yhat-refit.html",
                 r"Prediction",
             )
+
+            dico_lam["prediction_table"] = make_dico_prediction(yhatrefit,y, dico["classification"])
+
         else:
             dico_lam["prediction"] = False
 
@@ -519,27 +528,37 @@ def plot_beta(beta, directory, labels, name, title, max_number):
     offline.plot(fig, filename=os.path.join(directory, name), auto_open=False)
 
 
-def plot_cv(xGraph, yGraph, index_1SE, index_min, SE, directory, name):
-    mse_max, j = 10 * SE[index_min], 0
-    jmax = len(yGraph) - 1
-    while yGraph[jmax] > 100 * yGraph[index_min]:
+def plot_cv(lam, accuracy, index_1SE, index_min, SE, directory, name, logscale=True, classification=False):
+    
+    
+    mse_max, jmin = 10 * SE[index_min], 0
+    jmax = len(lam) - 1
+    while accuracy[jmax] > 100 * accuracy[index_min]:
         jmax -= 1
-    while j < index_1SE - 30 and yGraph[j] > mse_max:
-        j += 1
+    while jmin < index_1SE - 30 and accuracy[j] > mse_max:
+        jmin += 1
 
-    y_max = max(yGraph[j:jmax])
+    
     fig = graph_objects.Figure()
 
     # errors = np.zeros(len(SE[j:]))
     # errors[np.arange(0,len(errors),ceil(len(errors)/20))] =
     #  SE[j:][np.arange(0,len(errors),ceil(len(errors)/20))]
-    errors = SE[j:]
+    errors = SE[jmin:jmax]
+
+    if logscale:
+        xGraph = -np.log10(lam[jmin:jmax])
+    else:
+        xGraph = lam[jmin:jmax]
+    
+    yGraph = accuracy[jmin : jmax]
+    y_max = max(yGraph)
 
     fig.add_trace(
         graph_objects.Scatter(
-            x=xGraph[j:jmax],
-            y=yGraph[j:jmax],
-            name="MSE",
+            x=xGraph,
+            y=yGraph,
+            name="Accuracy",
             error_y=dict(
                 type="data",
                 # value of error bar given in data coordinates
@@ -566,8 +585,15 @@ def plot_cv(xGraph, yGraph, index_1SE, index_min, SE, directory, name):
         )
     )
 
-    fig.update_xaxes(title_text="lambda / lambda_max ")
-    fig.update_yaxes(title_text="Mean-Squared Error (MSE) ")
+    if logscale:
+        fig.update_xaxes(title_text=r"- log10 lambda / lambdamax")
+    else:
+        fig.update_xaxes(title_text="lambda / lambda_max ")
+    
+    if classification:
+        fig.update_yaxes(title_text="Misclassification rate")
+    else:
+        fig.update_yaxes(title_text="Mean-Squared Error (MSE)")
 
     offline.plot(fig, filename=os.path.join(directory, name), auto_open=False)
 
@@ -678,8 +704,8 @@ def plot_predict(yhat, y, train_labels, directory, name, title):
 
     fig.add_trace(
         graph_objects.Scatter(
-            x=[0, np.max(yhat.values)],
-            y=[0, np.max(yhat.values)],
+            x=[np.min(yhat.values), np.max(yhat.values)],
+            y=[np.min(yhat.values), np.max(yhat.values)],
             mode="lines",
             name="identity",
         )
@@ -690,7 +716,7 @@ def plot_predict(yhat, y, train_labels, directory, name, title):
 
 
 def plot_predict_path(
-    Yhat, y, lambdas, train_labels, predict_labels, directory, name, title
+    Yhat, y, lambdas, train_labels, predict_labels, directory, name, title, classification=False
 ):
     slice_sample = np.array(
         [
@@ -704,10 +730,13 @@ def plot_predict_path(
             for label in predict_labels
         ]
     )
-    print("pred", sum(slice_pred), "sample", sum(slice_sample))
+
     y_sample = y.values[slice_sample, 0]
     Y_pred = Yhat[:, slice_pred]
-    error = np.linalg.norm(Y_pred - y_sample, axis=1)
+    if classification:
+        error = np.mean( np.sign(Y_pred) != np.sign(y_sample), axis = 1 )
+    else:
+        error = np.linalg.norm(Y_pred - y_sample, axis=1)
     fig = graph_objects.Figure(layout_title_text=title)
     fig.add_trace(
         graph_objects.Scatter(
@@ -715,5 +744,33 @@ def plot_predict_path(
         )
     )
     fig.update_xaxes(title_text=r"lambda")
-    fig.update_yaxes(title_text=r"L2 error")
+    if classification:
+        fig.update_yaxes(title_text=r"Misclassification rate")
+    else:
+        fig.update_yaxes(title_text=r"L2 error")
     offline.plot(fig, filename=os.path.join(directory, name), auto_open=False)
+
+def make_dico_prediction(yhat,y,classification):
+    dic = {}
+    newy = y.loc[yhat.index & y.index].values
+    newyhat = yhat.loc[yhat.index & y.index].values
+    dic["samples"] = len(newy)
+    
+
+    if classification:
+        positive = newy == 1.
+        pred_pos = newyhat > 0.
+        dic["positive"]= np.sum(positive)
+        dic["negative"]= np.sum(~positive)
+        dic["FP"]= np.sum( pred_pos & ~positive )
+        dic["FN"]= np.sum( ~pred_pos & positive )
+        dic["R"] = "inappropriate"
+    else:
+        dic["R"] = 1 - np.mean((newy-newyhat)**2) / np.std(newy)**2
+        dic["positive"]= "inappropriate"
+        dic["negative"]= "inappropriate"
+        dic["FP"]= "inappropriate"
+        dic["FN"]= "inappropriate"
+
+    
+    return dic

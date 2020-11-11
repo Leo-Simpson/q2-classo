@@ -127,65 +127,79 @@ def add_taxa(
     return dfx, w_new
 
 
-def _code_columns(df, column_map, norm=1.0, normalization=False):
-    # this function takes some dataframe, and transform it so that
-    # one can add it to the big dataframe of features
-    # ie normalization / transform for categorical
-    def _code_col(series):
-        type_ = column_map[series.name].type
-
-        if type_ == "numeric":
-            vect = series.to_numpy()
-            # if vect has a NaN ==> raise error
-            if normalization:
-                vect = vect - np.mean(vect)
-                vect = vect / np.linalg.norm(vect) * norm
-            return vect
-        elif type_ == "categorical":
-            vect = series.to_numpy()
-            to_add = categorical_to_df(series)
-            return to_add
-        else:
-            raise ValueError("Unknown type.")
-
-    return df.apply(_code_col, axis=0)
-
-
 def add_covariates(
     covariates: qiime2.Metadata,
     to_add: str,
     features: pd.DataFrame = None,
     c: np.ndarray = None,
-) -> (pd.DataFrame, np.ndarray):
+    rescale: list = None,
+    weights:np.ndarray=None,
+    w_to_add: list = None
+) -> (pd.DataFrame, np.ndarray,np.ndarray):
 
-    if features is not None:
-        norm = features.apply(np.linalg.norm, axis=0).mean()
-        normalization = True
-    else:
-        norm = 1
-        normalization = False
 
-    
+
+    d = len(features.columns)
     covariates_df = covariates.to_dataframe()
     covariates_df = covariates_df[to_add]
-    covariates_df = _code_columns(
-        covariates_df, covariates.columns, norm, normalization
-    )
+
+    if rescale is None:
+        rescale = [False]*len(to_add)
+    elif len(rescale)!=len(to_add):
+        raise ValueError( "List rescale and to_add have different lengths")
+    
+    if weights is None:
+        weights = np.ones(d)
+    elif len(weights) != d:
+        raise ValueError( "weigths and features have different dimension")
+    
+    if w_to_add is None:
+        w_to_add = [1.]*len(to_add)
+    elif len(w_to_add) != len(to_add):
+        raise ValueError( "Lists to_add and w_to_add have different lengths")
+
+    for i,name in enumerate(to_add):
+        type_ = covariates.columns[name].type
+        serie = covariates_df[name]
+        vect = serie.to_numpy()
+        if type_ == "numeric":
+            # if vect has a NaN ==> raise error
+            if rescale[i]:
+                vect = vect - np.mean(vect)
+                vect = vect / np.linalg.norm(vect)
+            missing = np.isnan(vect)
+            vect[missing] = np.mean(vect[~missing])
+            covariates_df[name] = vect
+            weights=np.append(weights, w_to_add[i])
+        elif type_ == "categorical":
+            values_encont = []
+            for value_name in vect:
+                if value_name not in values_encont:
+                    values_encont.append(value_name)
+                    binary_vect = 1*(vect==value_name)
+                    nb_col = len(covariates_df.columns)
+                    covariates_df.insert(nb_col-1, column=name +' = '+value_name, value=binary_vect)
+                    weights=np.append(weights, w_to_add[i])
+
+            covariates_df = covariates_df.drop(columns=name)
+            
     if features is not None:
         # features, covariates_df
         # = features.align(covariates_df, join='inner',axis=0)
         X = pd.concat([features, covariates_df], axis=1, join="inner")
-        d = len(features.columns)
+        d_new = len(X.columns)
+        
         if c is None:
             c = np.ones((1,d))
         
-        c_new = np.zeros((len(c), len(c[0]) + len(to_add)))
-        c_new[:, : len(c[0])] = c
+        c_new = np.zeros((len(c), d_new))
+        c_new[:, : d ] = c
     else:
         X = covariates_df
-        c_new = np.zeros((1, len(to_add)))
+        c_new = np.zeros((1, d_new))
 
-    return X, c_new
+
+    return X, c_new, weights
 
 
 def regress(
@@ -259,9 +273,8 @@ def regress(
     problem.formulation.intercept = intercept
     d = X.shape[1]
     if weights is not None:
-        minw = min(weights)
         if len(weights) < d:
-            problem.formulation.w = np.concatenate([weights,minw*np.ones(d-len(weights))], axis=0)
+            problem.formulation.w = np.concatenate([weights,np.ones(d-len(weights))], axis=0)
         else:
             problem.formulation.w = weights[:d]
 
@@ -368,8 +381,15 @@ def classify(
     intercept: bool = True,
 ) -> classo_problem:
 
+    complete_y = y.to_series()
+    complete_y = complete_y[~complete_y.isna()]
+    first_cell = complete_y[0]
+
+    print(sum(complete_y==complete_y[0]), len(complete_y))
+
     features, pdY = features.align(y.to_series(), join="inner", axis=0)
     missing = pdY.isna()
+    training_labels = list(pdY[~missing].index)
     label_missing = list(pdY.index[missing])
     if label_missing:
         print("{} are missing in y ".format(label_missing))
@@ -377,7 +397,7 @@ def classify(
     X = features.values[~missing, :]
 
     verfify_binary(Y)
-    Y = Y == Y[0]
+    Y = Y == first_cell
     Y = 2 * Y - 1
 
     problem = classo_problem(X, Y, C=c, label=list(features.columns))
@@ -388,9 +408,8 @@ def classify(
     problem.formulation.intercept = intercept
     d = X.shape[1]
     if weights is not None:
-        minw = min(weights)
         if len(weights) < d:
-            problem.formulation.w = np.concatenate([weights,minw*np.ones(d-len(weights))], axis=0)
+            problem.formulation.w = np.concatenate([weights,np.ones(d-len(weights))], axis=0)
         else:
             problem.formulation.w = weights[:d]
 
@@ -451,6 +470,11 @@ def classify(
             param.lam = "theoretical"
 
     problem.solve()
+
+    cy = complete_y.values
+    problem.data.complete_y = 2*(cy == cy[0])-1
+    problem.data.complete_labels = list(complete_y.index)
+    problem.data.training_labels = training_labels
 
     return problem
 
@@ -526,3 +550,31 @@ def predict(
         predictions.YhatrefitLAMfixed = Yhatrefit
 
     return predictions
+
+
+
+
+def _code_columns(df, column_map, norm=1.0, normalization=False):
+    # this function takes some dataframe, and transform it so that
+    # one can add it to the big dataframe of features
+    # ie normalization / transform for categorical
+    def _code_col(series):
+        type_ = column_map[series.name].type
+
+        if type_ == "numeric":
+            vect = series.to_numpy()
+            # if vect has a NaN ==> raise error
+            if normalization:
+                vect = vect - np.mean(vect)
+                vect = vect / np.linalg.norm(vect) * norm
+            return vect
+        elif type_ == "categorical":
+            vect = series.to_numpy()
+            vect = vect == vect[0]
+            to_add = categorical_to_df(series)
+            return vect
+        else:
+            raise ValueError("Unknown type.")
+
+    return df.apply(_code_col, axis=0)
+

@@ -179,15 +179,17 @@ plugin.methods.register_function(
 # add_covariates
 plugin.methods.register_function(
     function=add_covariates,
-    inputs={"features": FeatureTable[Design], "c": ConstraintMatrix},
-    parameters={"covariates": Metadata, "to_add": List[Str]},
+    inputs={"features": FeatureTable[Design], "c": ConstraintMatrix, "weights":Weights},
+    parameters={"covariates": Metadata, "to_add": List[Str],"rescale":List[Bool], "w_to_add":List[Float]},
     outputs=[
         ("new_features", FeatureTable[Design]),
         ("new_c", ConstraintMatrix),
+        ("new_w",Weights)
     ],
     input_descriptions={
         "features": "Matrix representing the data of the problem",
         "c": "Constraint matrix",
+        "weights": "weigths that are gonna be updated"
     },
     parameter_descriptions={
         "covariates": (
@@ -198,10 +200,13 @@ plugin.methods.register_function(
             "names of columns of y to add to the"
             " feature table after having normalized them"
         ),
+        "rescale": "Either or not the columns should be rescaled",
+        "w_to_add": "Regularization weights corresponding to new covariates"
     },
     output_descriptions={
         "new_features": "Feature table  with new columns taken from y",
         "new_c": "Updated matrix c, with 0 on the new added columns",
+        "new_w":"Updated regularization weights "
     },
     name="add_covariates",
     description=(
