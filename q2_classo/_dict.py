@@ -30,16 +30,17 @@ regress_parameters = {
     "path": Bool,
     "path_numerical_method": Str,
     "path_n_active": Int,  # do something here ! for now it can be a bool !
-    "path_lambdas": List[Float],
     "path_nlam_log": Int,
     "path_lamin_log": Float,
     # CV parameters :
     "cv": Bool,
     "cv_numerical_method": Str,
     "cv_seed": Int,  # do something here ! for now it can be a bool !
-    "cv_lambdas": List[Float],
     "cv_one_se": Bool,
     "cv_subsets": Int,
+    "cv_nlam": Int,
+    "cv_lamin": Float,
+    "cv_logscale": Bool,
     # StabSel parameters :
     "stabsel": Bool,
     "stabsel_numerical_method": Str,
@@ -93,13 +94,6 @@ regress_parameter_descriptions = {
         "are actives. then the solution does not change"
         " from this point. Dafault value : False"
     ),
-    "path_lambdas": (
-        "list of lambdas for computinf lasso-path for "
-        "cross validation on lambda. Default value : "
-        "np.array([10**(-delta * float(i) / nlam)"
-        " for i in range(0,nlam) ] ) with delta=2."
-        " and nlam = 40"
-    ),
     "path_nlam_log": (
         " number of lambdas required, if the list of "
         "lambdas is not specified, in order to use a"
@@ -127,11 +121,6 @@ regress_parameter_descriptions = {
         " be the same. If set to False/None: pseudo-random vectors"
         "Default value : None"
     ),
-    "cv_lambdas": (
-        "list of lambdas for computinf lasso-path for "
-        "cross validation on lambda. Default value :"
-        " np.linspace(1., 1e-3, 500)"
-    ),
     "cv_one_se": (
         "if set to True, the selected lambda if"
         " computed with method ‘one-standard-error’ "
@@ -140,6 +129,9 @@ regress_parameter_descriptions = {
     "cv_subsets": (
         "number of subset in the cross validation method." " Default value : 5"
     ),
+    "cv_nlam": "number of lambda in cross-validation path",
+    "cv_lamin": "lambda minimum in cross-validation path",
+    "cv_logscale": "log scale in cross-validation path",
     # StabSel parameters :
     "stabsel": (
         "True if Stability Selection should be "
@@ -242,25 +234,22 @@ classify_parameters = {
     "path": Bool,
     "path_numerical_method": Str,
     "path_n_active": Int,
-    # do something here ! for now it can be a bool !
-    "path_lambdas": List[Float],
     "path_nlam_log": Int,
     "path_lamin_log": Float,
     # CV parameters :
     "cv": Bool,
     "cv_numerical_method": Str,
     "cv_seed": Int,
-    # do something here ! for now it can be a bool !
-    "cv_lambdas": List[Float],
     "cv_one_se": Bool,
     "cv_subsets": Int,
+    "cv_nlam": Int,
+    "cv_lamin": Float,
+    "cv_logscale": Bool,
     # StabSel parameters :
     "stabsel": Bool,
     "stabsel_numerical_method": Str,
     "stabsel_seed": Int,
-    # do something here ! for now it can be a bool !
     "stabsel_lam": Float,
-    # can be str as well for now !
     "stabsel_true_lam": Bool,
     "stabsel_method": Str,
     "stabsel_b": Int,
@@ -305,13 +294,6 @@ classify_parameter_descriptions = {
         "are actives. then the solution does not change"
         " from this point. Dafault value : False"
     ),
-    "path_lambdas": (
-        "list of lambdas for computinf lasso-path for "
-        "cross validation on lambda. Default value : "
-        "np.array([10**(-delta * float(i) / nlam)"
-        " for i in range(0,nlam) ] ) with delta=2."
-        " and nlam = 40"
-    ),
     "path_nlam_log": (
         " number of lambdas required, if the list of "
         "lambdas is not specified, in order to use a"
@@ -339,11 +321,6 @@ classify_parameter_descriptions = {
         " be the same. If set to False/None: pseudo-random vectors"
         "Default value : None"
     ),
-    "cv_lambdas": (
-        "list of lambdas for computinf lasso-path for "
-        "cross validation on lambda. Default value :"
-        " np.linspace(1., 1e-3, 500)"
-    ),
     "cv_one_se": (
         "if set to True, the selected lambda if"
         " computed with method ‘one-standard-error’ "
@@ -352,6 +329,9 @@ classify_parameter_descriptions = {
     "cv_subsets": (
         "number of subset in the cross validation method." " Default value : 5"
     ),
+    "cv_nlam": "number of lambda in cross-validation path",
+    "cv_lamin": "lambda minimum in cross-validation path",
+    "cv_logscale": "log scale in cross-validation path",
     # StabSel parameters :
     "stabsel": (
         "True if Stability Selection should be "

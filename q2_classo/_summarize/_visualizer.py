@@ -54,9 +54,10 @@ def summarize(
 def build_context(output_dir, problem, predictions, taxa, max_number):
     t = time()
 
-    print("labels : ", np.array(problem["data/label"]))
-    print("C=", np.array(problem["data/C"] ))
-    print("weights : ", np.array(problem["formulation/w"]))
+    #print("labels : ", np.array(problem["data/label"]))
+    #print("C=", np.array(problem["data/C"] ))
+    #print("weights : ", np.array(problem["formulation/w"]))
+    #print(problem["formulation"].attrs.asdict())
 
     labels = np.array(problem["data/label"])
     if problem["formulation"].attrs["intercept"]:
@@ -156,6 +157,7 @@ def build_context(output_dir, problem, predictions, taxa, max_number):
             labels,
             "beta-path.html",
             "sigma-path.html",
+            logscale=dico_path["logscale"]
         )
 
         if predictions is not None and predictions.attrs["PATH"]:
@@ -168,8 +170,9 @@ def build_context(output_dir, problem, predictions, taxa, max_number):
                 predict_labels,
                 output_dir,
                 "predict-path.html",
-                r"L2 error of the prediction on testing set",
-                classification=dico["classification"]
+                r"Error of the prediction on testing set",
+                classification=dico["classification"],
+                logscale=dico_path["logscale"]
             )
 
         else:
@@ -177,11 +180,9 @@ def build_context(output_dir, problem, predictions, taxa, max_number):
 
     if dico_ms["CV"]:
         context["cv"] = True
-        xGraph, yGraph, standard_error = (
-            problem["solution/CV/xGraph"],
-            problem["solution/CV/yGraph"],
-            problem["solution/CV/standard_error"],
-        )
+        xGraph = np.array(problem["solution/CV/xGraph"]) 
+        yGraph = np.array(problem["solution/CV/yGraph"]) 
+        standard_error = np.array(problem["solution/CV/standard_error"])
         context["tabs"].append({"title": "Cross-Validation", "url": "cv.html"})
         dico_cv = {
             **problem["model_selection/CVparameters"].attrs.asdict(),
@@ -226,7 +227,8 @@ def build_context(output_dir, problem, predictions, taxa, max_number):
             standard_error,
             output_dir,
             "cv-graph.html",
-            classification=dico["classification"]
+            classification=dico["classification"],
+            logscale = dico_cv["logscale"]
         )
 
         if predictions is not None and predictions.attrs["CV"]:
@@ -258,6 +260,7 @@ def build_context(output_dir, problem, predictions, taxa, max_number):
             **problem["solution/StabSel"].attrs.asdict(),
         }
         dico_stabsel["with_path"] = dico_stabsel["method"] == "first"
+        dico_stabsel["with_path"] = False
 
         stability = pd.DataFrame(
             data={
@@ -424,7 +427,7 @@ def build_context(output_dir, problem, predictions, taxa, max_number):
 
 def name_formulation(dictio, output_dir):
     if dictio["classification"]:
-        if dictio["concomitant"]:
+        if dictio["huber"]:
             shutil.copy(
                 os.path.join(dir_form, "C2.png"),
                 os.path.join(output_dir, "formula.png"),
@@ -476,18 +479,25 @@ def name_formulation(dictio, output_dir):
                 return "R1 (classic lasso formulation)"
 
 
-def plot_path(BETAS, SIGMAS, LAMBDAS, directory, labels, name1, name2):
+def plot_path(BETAS, SIGMAS, LAMBDAS, directory, labels, name1, name2, logscale=False):
     fig = graph_objects.Figure(
         layout_title_text=r"Coefficients across lambda-path"
     )
+    if logscale:
+        textlam = r"- log10 lambda / lambdamax"
+        xGraph = -np.log10(LAMBDAS/LAMBDAS[0])
+    else:
+        textlam = r"lambda" 
+        xGrpah = LAMBDAS
+
     maxB = np.amax(abs(BETAS))
     start = int(labels[0] == "intercept")
     for i in range(start, len(BETAS[0])):
         if np.amax(abs(BETAS[:, i])) > maxB * 1e-4:
             fig.add_trace(
-                graph_objects.Scatter(x=LAMBDAS, y=BETAS[:, i], name=labels[i])
+                graph_objects.Scatter(x=xGraph, y=BETAS[:, i], name=labels[i])
             )
-    fig.update_xaxes(title_text=r"lambda")
+    fig.update_xaxes(title_text=textlam)
     fig.update_yaxes(title_text=r"Coefficients beta_i ")
     offline.plot(fig, filename=os.path.join(directory, name1), auto_open=False)
 
@@ -496,9 +506,9 @@ def plot_path(BETAS, SIGMAS, LAMBDAS, directory, labels, name1, name2):
             layout_title_text=r"Scale estimate across lambda-path"
         )
         fig2.add_trace(
-            graph_objects.Scatter(x=LAMBDAS, y=SIGMAS, name="sigma")
+            graph_objects.Scatter(x=xGraph, y=SIGMAS, name="sigma")
         )
-        fig2.update_xaxes(title_text=r"lambda")
+        fig2.update_xaxes(title_text=textlam)
         fig2.update_yaxes(title_text=r"Scale sigma ")
         offline.plot(
             fig2, filename=os.path.join(directory, name2), auto_open=False
@@ -545,19 +555,18 @@ def plot_cv(lam, accuracy, index_1SE, index_min, SE, directory, name, logscale=T
     # errors[np.arange(0,len(errors),ceil(len(errors)/20))] =
     #  SE[j:][np.arange(0,len(errors),ceil(len(errors)/20))]
     errors = SE[jmin:jmax]
-
     if logscale:
-        xGraph = -np.log10(lam[jmin:jmax])
+        xGra = -np.log10(lam)
     else:
-        xGraph = lam[jmin:jmax]
+        xGra = lam
     
-    yGraph = accuracy[jmin : jmax]
-    y_max = max(yGraph)
+    yGra = accuracy[jmin : jmax]
+    y_max = max(yGra)
 
     fig.add_trace(
         graph_objects.Scatter(
-            x=xGraph,
-            y=yGraph,
+            x=xGra[jmin:jmax],
+            y=yGra,
             name="Accuracy",
             error_y=dict(
                 type="data",
@@ -570,7 +579,7 @@ def plot_cv(lam, accuracy, index_1SE, index_min, SE, directory, name, logscale=T
 
     fig.add_trace(
         graph_objects.Scatter(
-            x=[xGraph[index_min], xGraph[index_min]],
+            x=[xGra[index_min], xGra[index_min]],
             y=[0, y_max],
             mode="lines",
             name="Lambda min MSE",
@@ -578,7 +587,7 @@ def plot_cv(lam, accuracy, index_1SE, index_min, SE, directory, name, logscale=T
     )
     fig.add_trace(
         graph_objects.Scatter(
-            x=[xGraph[index_1SE], xGraph[index_1SE]],
+            x=[xGra[index_1SE], xGra[index_1SE]],
             y=[0, y_max],
             mode="lines",
             name="Lambda 1SE",
@@ -716,8 +725,16 @@ def plot_predict(yhat, y, train_labels, directory, name, title):
 
 
 def plot_predict_path(
-    Yhat, y, lambdas, train_labels, predict_labels, directory, name, title, classification=False
+    Yhat, y, lambdas, train_labels, predict_labels, directory, name, title, classification=False, logscale=False
 ):
+
+    if logscale:
+        textlam = r"- log10 lambda / lambdamax"
+        xGraph = -np.log10(lambdas/lambdas[0])
+    else:
+        textlam = r"lambda" 
+        xGrpah = lambdas
+
     slice_sample = np.array(
         [
             (label not in train_labels and label in predict_labels)
@@ -743,7 +760,7 @@ def plot_predict_path(
             x=lambdas, y=error, name="L2 error over test set"
         )
     )
-    fig.update_xaxes(title_text=r"lambda")
+    fig.update_xaxes(title_text=textlam)
     if classification:
         fig.update_yaxes(title_text=r"Misclassification number")
     else:
@@ -752,8 +769,8 @@ def plot_predict_path(
 
 def make_dico_prediction(yhat,y,classification):
     dic = {}
-    newy = y.loc[yhat.index & y.index].values
-    newyhat = yhat.loc[yhat.index & y.index].values
+    newy = y.loc[yhat.index & y.index].values[:,0]
+    newyhat = yhat.loc[yhat.index & y.index].values[:,0]
     dic["samples"] = len(newy)
     
 
@@ -767,6 +784,7 @@ def make_dico_prediction(yhat,y,classification):
         dic["R"] = "inappropriate"
     else:
         dic["R"] = 1 - np.mean((newy-newyhat)**2) / np.std(newy)**2
+        dic["R"] = np.corrcoef(newy, newyhat)[0,1]**2
         dic["positive"]= "inappropriate"
         dic["negative"]= "inappropriate"
         dic["FP"]= "inappropriate"
