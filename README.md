@@ -1,6 +1,6 @@
 # q2-classo - a QIIME 2 plugin for constrained sparse regression and classification
 
-currently developed by Léo Simpson, Evan Bolyen, Christian L. Müller
+developed by Léo Simpson, Evan Bolyen, Christian L. Müller
 
 
 ## Commands to run an example
