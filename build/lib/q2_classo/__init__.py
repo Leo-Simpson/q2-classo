@@ -13,7 +13,7 @@ from ._func import (
     classify,
     predict,
     prediction_data,
-)
+    to_zarr)
 from ._formats import (
     CLASSOProblemDirectoryFormat,
     ZarrProblemFormat,
@@ -23,4 +23,4 @@ from ._formats import (
     WeightsFormat
 )
 from ._summarize import summarize
-from classo import classo_problem, to_zarr
+from classo import classo_problem

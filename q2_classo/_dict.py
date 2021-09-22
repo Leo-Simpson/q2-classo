@@ -38,7 +38,7 @@ regress_parameters = {
     "cv_seed": Int,  # do something here ! for now it can be a bool !
     "cv_one_se": Bool,
     "cv_subsets": Int,
-    "cv_nlam": Int,
+    "cv__nlam": Int,
     "cv_lamin": Float,
     "cv_logscale": Bool,
     # StabSel parameters :
@@ -129,7 +129,7 @@ regress_parameter_descriptions = {
     "cv_subsets": (
         "number of subset in the cross validation method." " Default value : 5"
     ),
-    "cv_nlam": "number of lambda in cross-validation path",
+    "cv__nlam": "number of lambda in cross-validation path",
     "cv_lamin": "lambda minimum in cross-validation path",
     "cv_logscale": "log scale in cross-validation path",
     # StabSel parameters :
@@ -242,7 +242,7 @@ classify_parameters = {
     "cv_seed": Int,
     "cv_one_se": Bool,
     "cv_subsets": Int,
-    "cv_nlam": Int,
+    "cv__nlam": Int,
     "cv_lamin": Float,
     "cv_logscale": Bool,
     # StabSel parameters :
@@ -329,7 +329,7 @@ classify_parameter_descriptions = {
     "cv_subsets": (
         "number of subset in the cross validation method." " Default value : 5"
     ),
-    "cv_nlam": "number of lambda in cross-validation path",
+    "cv__nlam": "number of lambda in cross-validation path",
     "cv_lamin": "lambda minimum in cross-validation path",
     "cv_logscale": "log scale in cross-validation path",
     # StabSel parameters :

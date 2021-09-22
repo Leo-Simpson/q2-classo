@@ -213,16 +213,17 @@ def regress(
     path: bool = True,
     path_numerical_method: str = "not specified",
     path_n_active: int = 0,
-    path_lambdas: list = None,
     path_nlam_log: int = 40,
     path_lamin_log: float = 1e-2,
     # CV parameters :
     cv: bool = True,
     cv_numerical_method: str = "not specified",
     cv_seed: int = 1,
-    cv_lambdas: list = None,  # to do
     cv_one_se: bool = True,
     cv_subsets: int = 5,
+    cv__nlam: int = 100,
+    cv_lamin: float = 1e-3,
+    cv_logscale: bool = True,
     # StabSel parameters :
     stabsel: bool = True,
     stabsel_numerical_method: str = "not specified",
@@ -286,7 +287,9 @@ def regress(
         param = problem.model_selection.PATHparameters
         param.numerical_method = path_numerical_method
         param.n_active = path_n_active
-        param.lambdas = path_lambdas
+        param.logscale = True
+        param.Nlam = path_nlam_log
+        param.lamin = path_lamin_log
 
     problem.model_selection.CV = cv
     if cv:
@@ -295,7 +298,9 @@ def regress(
         param.seed = cv_seed
         param.oneSE = cv_one_se
         param.Nsubsets = cv_subsets
-        param.lambdas = cv_lambdas
+        param.lamin = cv_lamin
+        param.Nlam = cv__nlam
+        param.logscale = cv_logscale
 
     problem.model_selection.StabSel = stabsel
     if stabsel:
@@ -346,16 +351,17 @@ def classify(
     path: bool = True,
     path_numerical_method: str = "not specified",
     path_n_active: int = 0,
-    path_lambdas: list = None,
     path_nlam_log: int = 40,
     path_lamin_log: float = 1e-2,
     # CV parameters :
     cv: bool = True,
     cv_numerical_method: str = "not specified",
     cv_seed: int = 1,
-    cv_lambdas: list = None,  # to do
     cv_one_se: bool = True,
     cv_subsets: int = 5,
+    cv__nlam: int = 100,
+    cv_lamin: float = 1e-3,
+    cv_logscale: bool = True,
     # StabSel parameters :
     stabsel: bool = True,
     stabsel_numerical_method: str = "not specified",
@@ -377,7 +383,7 @@ def classify(
     lamfixed_true_lam: bool = True,
     # Formulation parameters
     huber: bool = False,
-    rho: float = -1.0,
+    rho: float = 0.0,
     intercept: bool = True,
 ) -> classo_problem:
 
@@ -385,7 +391,7 @@ def classify(
     complete_y = complete_y[~complete_y.isna()]
     first_cell = complete_y[0]
 
-    print(sum(complete_y==complete_y[0]), len(complete_y))
+    #print(sum(complete_y==complete_y[0]), len(complete_y))
 
     features, pdY = features.align(y.to_series(), join="inner", axis=0)
     missing = pdY.isna()
@@ -404,6 +410,7 @@ def classify(
     problem.formulation.classification = True
     problem.formulation.concomitant = False
     problem.formulation.huber = huber
+    #print(rho)
     problem.formulation.rho_classification = rho
     problem.formulation.intercept = intercept
     d = X.shape[1]
@@ -419,15 +426,9 @@ def classify(
         param = problem.model_selection.PATHparameters
         param.numerical_method = path_numerical_method
         param.n_active = path_n_active
-        if path_lambdas is None:
-            param.lambdas = np.array(
-                [
-                    10 ** (np.log10(path_lamin_log) * float(i) / path_nlam_log)
-                    for i in range(0, path_nlam_log)
-                ]
-            )
-        else:
-            param.lambdas = path_lambdas
+        param.logscale = True
+        param.Nlam = path_nlam_log
+        param.lamin = path_lamin_log
 
     problem.model_selection.CV = cv
     if cv:
@@ -436,10 +437,9 @@ def classify(
         param.seed = cv_seed
         param.oneSE = cv_one_se
         param.Nsubsets = cv_subsets
-        if cv_lambdas is None:
-            param.lambdas = np.linspace(1.0, 1e-3, 500)
-        else:
-            param.lambdas = cv_lambdas
+        param.lamin = cv_lamin
+        param.Nlam = cv__nlam
+        param.logscale = cv_logscale
 
     problem.model_selection.StabSel = stabsel
     if stabsel:
@@ -577,4 +577,41 @@ def _code_columns(df, column_map, norm=1.0, normalization=False):
             raise ValueError("Unknown type.")
 
     return df.apply(_code_col, axis=0)
+
+
+
+
+def to_zarr(obj, name, root, first = True):
+    '''
+    Function for converting a python object to a zarr file , with tree structue.
+    '''
+    if type(obj) == dict:
+        if first:
+            zz = root
+        else:
+            zz = root.create_group(name)
+
+        for key, value in obj.items():
+            to_zarr(value, key, zz, first = False)
+
+    elif type(obj) in [np.ndarray, pd.DataFrame]:
+        root.create_dataset(name, data = obj, shape = obj.shape)
+
+    elif type(obj) == np.float64:
+        root.attrs[name] = float(obj)
+
+    elif type(obj) == np.int64:
+        root.attrs[name] = int(obj)
+
+    elif type(obj) == list:
+        if name == "tree":
+            root.attrs[name] = obj
+        else:
+            to_zarr(np.array(obj), name, root, first = False)
+
+    elif obj is None or type(obj) in [str, bool, float, int]:
+        root.attrs[name] = obj
+
+    else:
+        to_zarr(obj.__dict__, name, root, first = first)
 

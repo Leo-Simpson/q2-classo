@@ -5,7 +5,6 @@ q2_classo/_dict.py
 q2_classo/_formats.py
 q2_classo/_func.py
 q2_classo/_tree.py
-q2_classo/citations.bib
 q2_classo/plugin_setup.py
 q2_classo.egg-info/PKG-INFO
 q2_classo.egg-info/SOURCES.txt

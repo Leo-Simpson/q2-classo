@@ -28,12 +28,16 @@ from q2_types.feature_table import (
 )
 from q2_types.feature_data import TSVTaxonomyFormat, FeatureData, Taxonomy
 import qiime2
-from . import *
 import numpy as np
 import biom
 import zarr
 import pandas as pd
 
+import sys, os
+from os.path import join, dirname
+q2_classo_dir = dirname(os.getcwd())
+sys.path.append(q2_classo_dir)
+import q2_classo as q2c
 
 version = qiime2.__version__
 # citations = Citations.load('citations.bib', package='q2_classo')
@@ -63,18 +67,18 @@ Weights = SemanticType("Weights")
 
 
 plugin.register_formats(
-    CLASSOProblemDirectoryFormat,
-    ConstraintDirectoryFormat, WeightsDirectoryFormat
+    q2c.CLASSOProblemDirectoryFormat,
+    q2c.ConstraintDirectoryFormat, q2c.WeightsDirectoryFormat
 )
 plugin.register_semantic_type_to_format(
-    ConstraintMatrix, artifact_format=ConstraintDirectoryFormat
+    ConstraintMatrix, artifact_format=q2c.ConstraintDirectoryFormat
 )
 plugin.register_semantic_type_to_format(
-    Weights, artifact_format=WeightsDirectoryFormat
+    Weights, artifact_format=q2c.WeightsDirectoryFormat
 )
 
 plugin.register_semantic_type_to_format(
-    CLASSOProblem, artifact_format=CLASSOProblemDirectoryFormat
+    CLASSOProblem, artifact_format=q2c.CLASSOProblemDirectoryFormat
 )
 
 # plugin.register_semantic_type_to_format(
@@ -85,7 +89,7 @@ plugin.register_semantic_types(CLASSOProblem, ConstraintMatrix, Weights)
 
 # generate_data
 plugin.methods.register_function(
-    function=generate_data,
+    function=q2c.generate_data,
     inputs={"taxa": FeatureData[Taxonomy]},
     parameters={"n": Int, "d": Int, "d_nonzero": Int, "classification": Bool},
     outputs=[("x", FeatureTable[Composition]), ("c", ConstraintMatrix)],
@@ -112,7 +116,7 @@ plugin.methods.register_function(
 
 # features_clr
 plugin.methods.register_function(
-    function=transform_features,
+    function=q2c.transform_features,
     inputs={"features": FeatureTable[Composition | Frequency | Design]},
     parameters={"transformation": Str, "coef": Float},
     outputs=[("x", FeatureTable[Design])],
@@ -145,7 +149,7 @@ plugin.methods.register_function(
 
 # add_taxa
 plugin.methods.register_function(
-    function=add_taxa,
+    function=q2c.add_taxa,
     inputs={
         "features": FeatureTable[Design],
         "weights": Weights,
@@ -178,7 +182,7 @@ plugin.methods.register_function(
 
 # add_covariates
 plugin.methods.register_function(
-    function=add_covariates,
+    function=q2c.add_covariates,
     inputs={"features": FeatureTable[Design], "c": ConstraintMatrix, "weights":Weights},
     parameters={"covariates": Metadata, "to_add": List[Str],"rescale":List[Bool], "w_to_add":List[Float]},
     outputs=[
@@ -218,14 +222,14 @@ plugin.methods.register_function(
 
 # regress
 plugin.methods.register_function(
-    function=regress,
+    function=q2c.regress,
     inputs={
         "features": FeatureTable[Design],
         "c": ConstraintMatrix,
         "weights": Weights,
         # 'taxa': FeatureData[Taxonomy]
     },
-    parameters=regress_parameters,
+    parameters=q2c.regress_parameters,
     outputs=[("result", CLASSOProblem)],
     input_descriptions={
         "features": "Matrix representing the data of the problem",
@@ -235,7 +239,7 @@ plugin.methods.register_function(
         # and then change the problem to the new formulation
         # (with log(X)A instead of log(X))'
     },
-    parameter_descriptions=regress_parameter_descriptions,
+    parameter_descriptions=q2c.regress_parameter_descriptions,
     output_descriptions={
         "result": (
             "Directory format that will contain all "
@@ -255,14 +259,14 @@ plugin.methods.register_function(
 
 # classify
 plugin.methods.register_function(
-    function=classify,
+    function=q2c.classify,
     inputs={
         "features": FeatureTable[Design],
         "c": ConstraintMatrix,
         "weights": Weights,
         # 'taxa': FeatureData[Taxonomy]
     },
-    parameters=classify_parameters,
+    parameters=q2c.classify_parameters,
     outputs=[("result", CLASSOProblem)],
     input_descriptions={
         "features": "Matrix representing the data of the problem",
@@ -272,7 +276,7 @@ plugin.methods.register_function(
         #  and then change the problem to the new formulation
         #  (with log(X)A instead of log(X))'
     },
-    parameter_descriptions=classify_parameter_descriptions,
+    parameter_descriptions=q2c.classify_parameter_descriptions,
     output_descriptions={
         "result": (
             "Directory format that will"
@@ -293,7 +297,7 @@ plugin.methods.register_function(
 
 # predict
 plugin.methods.register_function(
-    function=predict,
+    function=q2c.predict,
     inputs={"features": FeatureTable[Design], "problem": CLASSOProblem},
     parameters={},
     outputs=[("predictions", CLASSOProblem)],
@@ -328,7 +332,7 @@ plugin.methods.register_function(
 
 # summarize
 plugin.visualizers.register_function(
-    function=summarize,
+    function=q2c.summarize,
     inputs={
         "problem": CLASSOProblem,
         "taxa": FeatureData[Taxonomy],
@@ -372,31 +376,34 @@ Transformers
 """
 
 
+
+
+
 @plugin.register_transformer
-def _0(obj: classo_problem) -> CLASSOProblemDirectoryFormat:
+def _0(obj: q2c.classo_problem) -> q2c.CLASSOProblemDirectoryFormat:
     # for output of regress
-    ff = CLASSOProblemDirectoryFormat()
+    ff = q2c.CLASSOProblemDirectoryFormat()
     zipfile = str(ff.path / "problem.zip")
     store = zarr.ZipStore(zipfile, mode="w")
     root = zarr.open(store=store)
-    to_zarr(obj, "problem", root)
+    q2c.to_zarr(obj, "problem", root)
     store.close()
     return ff
 
 
 @plugin.register_transformer
-def _1(obj: prediction_data) -> CLASSOProblemDirectoryFormat:
-    ff = CLASSOProblemDirectoryFormat()
+def _1(obj: q2c.prediction_data) -> q2c.CLASSOProblemDirectoryFormat:
+    ff = q2c.CLASSOProblemDirectoryFormat()
     zipfile = str(ff.path / "problem.zip")
     store = zarr.ZipStore(zipfile, mode="w")
     root = zarr.open(store=store)
-    to_zarr(obj, "predictions", root)
+    q2c.to_zarr(obj, "predictions", root)
     store.close()
     return ff
 
 
 @plugin.register_transformer
-def _2(ff: ZarrProblemFormat) -> zarr.hierarchy.Group:
+def _2(ff: q2c.ZarrProblemFormat) -> zarr.hierarchy.Group:
     # for visualizers
     store = zarr.ZipStore(str(ff), mode="r")
     root = zarr.open(store=store)
@@ -404,16 +411,16 @@ def _2(ff: ZarrProblemFormat) -> zarr.hierarchy.Group:
 
 
 @plugin.register_transformer
-def _3(obj: np.ndarray) -> ConstraintDirectoryFormat:
+def _3(obj: np.ndarray) -> q2c.ConstraintDirectoryFormat:
     # for C in generate data, or generate constraint
-    ff = ConstraintDirectoryFormat()
+    ff = q2c.ConstraintDirectoryFormat()
     filename = str(ff.path / "cmatrix.zip")
     zarr.save(filename, obj)
     return ff
 
 
 @plugin.register_transformer
-def _4(obj: ConstraintFormat) -> np.ndarray:
+def _4(obj: q2c.ConstraintFormat) -> np.ndarray:
     # for C in regress
     return zarr.load(str(obj))
 
@@ -457,16 +464,16 @@ def _5(ff: TSVTaxonomyFormat) -> skbio.TreeNode:
 
 
 @plugin.register_transformer
-def _5(obj: np.ndarray) -> WeightsDirectoryFormat:
+def _5(obj: np.ndarray) -> q2c.WeightsDirectoryFormat:
     # for C in generate data, or generate constraint
-    ff = WeightsDirectoryFormat()
+    ff = q2c.WeightsDirectoryFormat()
     filename = str(ff.path / "cmatrix.zip")
     zarr.save(filename, obj)
     return ff
 
 
 @plugin.register_transformer
-def _6(obj: WeightsFormat) -> np.ndarray:
+def _6(obj: q2c.WeightsFormat) -> np.ndarray:
     return zarr.load(str(obj))
 
 

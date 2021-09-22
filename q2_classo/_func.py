@@ -221,7 +221,7 @@ def regress(
     cv_seed: int = 1,
     cv_one_se: bool = True,
     cv_subsets: int = 5,
-    cv_nlam: int = 100,
+    cv__nlam: int = 100,
     cv_lamin: float = 1e-3,
     cv_logscale: bool = True,
     # StabSel parameters :
@@ -299,7 +299,7 @@ def regress(
         param.oneSE = cv_one_se
         param.Nsubsets = cv_subsets
         param.lamin = cv_lamin
-        param.Nlam = cv_nlam
+        param.Nlam = cv__nlam
         param.logscale = cv_logscale
 
     problem.model_selection.StabSel = stabsel
@@ -359,7 +359,7 @@ def classify(
     cv_seed: int = 1,
     cv_one_se: bool = True,
     cv_subsets: int = 5,
-    cv_nlam: int = 100,
+    cv__nlam: int = 100,
     cv_lamin: float = 1e-3,
     cv_logscale: bool = True,
     # StabSel parameters :
@@ -438,7 +438,7 @@ def classify(
         param.oneSE = cv_one_se
         param.Nsubsets = cv_subsets
         param.lamin = cv_lamin
-        param.Nlam = cv_nlam
+        param.Nlam = cv__nlam
         param.logscale = cv_logscale
 
     problem.model_selection.StabSel = stabsel
@@ -577,4 +577,41 @@ def _code_columns(df, column_map, norm=1.0, normalization=False):
             raise ValueError("Unknown type.")
 
     return df.apply(_code_col, axis=0)
+
+
+
+
+def to_zarr(obj, name, root, first = True):
+    '''
+    Function for converting a python object to a zarr file , with tree structue.
+    '''
+    if type(obj) == dict:
+        if first:
+            zz = root
+        else:
+            zz = root.create_group(name)
+
+        for key, value in obj.items():
+            to_zarr(value, key, zz, first = False)
+
+    elif type(obj) in [np.ndarray, pd.DataFrame]:
+        root.create_dataset(name, data = obj, shape = obj.shape)
+
+    elif type(obj) == np.float64:
+        root.attrs[name] = float(obj)
+
+    elif type(obj) == np.int64:
+        root.attrs[name] = int(obj)
+
+    elif type(obj) == list:
+        if name == "tree":
+            root.attrs[name] = obj
+        else:
+            to_zarr(np.array(obj), name, root, first = False)
+
+    elif obj is None or type(obj) in [str, bool, float, int]:
+        root.attrs[name] = obj
+
+    else:
+        to_zarr(obj.__dict__, name, root, first = first)
 
