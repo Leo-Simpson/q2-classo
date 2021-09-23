@@ -1,11 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="94bcdad1-84c6-4955-9593-b8c4c0208d54" name="Default Changelist" comment="test version control">
-      <change afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Dockerfile" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    <list default="true" id="94bcdad1-84c6-4955-9593-b8c4c0208d54" name="Default Changelist" comment="cloned the version edbf9d20fe of q2-classo">
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -182,7 +179,7 @@
       <workItem from="1632317427893" duration="2603000" />
       <workItem from="1632388356716" duration="1333000" />
       <workItem from="1632389853380" duration="1269000" />
-      <workItem from="1632408610465" duration="604000" />
+      <workItem from="1632408610465" duration="925000" />
     </task>
     <task id="LOCAL-00001" summary="add requirements file and docker settings">
       <created>1632216044188</created>
@@ -205,7 +202,21 @@
       <option name="project" value="LOCAL" />
       <updated>1632305049773</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="cloned the version edbf9d20fe of q2-classo">
+      <created>1632409451106</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1632409451107</updated>
+    </task>
+    <task id="LOCAL-00005" summary="cloned the version edbf9d20fe of q2-classo">
+      <created>1632409503631</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1632409503631</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -224,7 +235,8 @@
     <MESSAGE value="add requirements file and docker settings" />
     <MESSAGE value="testing c-lasso engine, no def to_zarr() were found, have to update classo" />
     <MESSAGE value="test version control" />
-    <option name="LAST_COMMIT_MESSAGE" value="test version control" />
+    <MESSAGE value="cloned the version edbf9d20fe of q2-classo" />
+    <option name="LAST_COMMIT_MESSAGE" value="cloned the version edbf9d20fe of q2-classo" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/q2_classo$local_python3_9.coverage" NAME="classo_container Coverage Results" MODIFIED="1632389109860" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
