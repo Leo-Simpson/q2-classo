@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="94bcdad1-84c6-4955-9593-b8c4c0208d54" name="Default Changelist" comment="cloned the version edbf9d20fe of q2-classo">
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-    </list>
+    <list default="true" id="94bcdad1-84c6-4955-9593-b8c4c0208d54" name="Default Changelist" comment="cloned the version edbf9d20fe of q2-classo" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -17,6 +15,11 @@
     </option>
   </component>
   <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="master" />
+      </map>
+    </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="ProblemsViewState">
@@ -179,7 +182,7 @@
       <workItem from="1632317427893" duration="2603000" />
       <workItem from="1632388356716" duration="1333000" />
       <workItem from="1632389853380" duration="1269000" />
-      <workItem from="1632408610465" duration="925000" />
+      <workItem from="1632408610465" duration="1404000" />
     </task>
     <task id="LOCAL-00001" summary="add requirements file and docker settings">
       <created>1632216044188</created>
@@ -216,7 +219,14 @@
       <option name="project" value="LOCAL" />
       <updated>1632409503631</updated>
     </task>
-    <option name="localTasksCounter" value="6" />
+    <task id="LOCAL-00006" summary="cloned the version edbf9d20fe of q2-classo">
+      <created>1632409855176</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1632409855176</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
