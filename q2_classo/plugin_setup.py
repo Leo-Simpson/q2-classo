@@ -121,7 +121,7 @@ plugin.methods.register_function(
 plugin.methods.register_function(
     function=q2c.transform_features,
     inputs={"features": FeatureTable[Composition | Frequency | Design]},
-    parameters={"transformation": Str, "pseudo": Float},
+    parameters={"transformation": Str, "pseudocount": Float},
     outputs=[("x", FeatureTable[Design])],
     input_descriptions={
         "features": (
@@ -134,7 +134,7 @@ plugin.methods.register_function(
             " String representing the name of the "
             "transformation we will use "
         ),
-        "pseudo": (
+        "pseudocount": (
             "Value that should be put instead of zeros"
             " in the feature table. Default value is 0.5"
         ),

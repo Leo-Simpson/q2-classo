@@ -139,10 +139,10 @@ def log_transform(X):
 
 
 def transform_features(
-        features: pd.DataFrame, transformation: Str = "clr", pseudo: float = 0.5
+        features: pd.DataFrame, transformation: Str = "clr", pseudocount: float = 0.5
 ) -> pd.DataFrame:
     if transformation == "clr":
-        X = zero_replacement(features, c=pseudo)
+        X = zero_replacement(features, c=pseudocount)
         X = log_transform(X)
 
         return pd.DataFrame(
