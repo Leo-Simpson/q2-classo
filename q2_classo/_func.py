@@ -103,47 +103,16 @@ def generate_data(
 #         raise ValueError(
 #             "Unknown transformation name, use clr and not %r" % transformation
 #         )
-
-def geometric_mean(x):
-    """
-    calculates the geometric mean of a vector
-    """
-    a = np.log(x)
-    return np.exp(a.sum() / len(a))
-
-
-def zero_replacement(X, c=0.5):
-    """
-    replaces zeros with a constant value c
-    """
-    Z = X.replace(to_replace=0, value=c)
-    return Z
-
-
-def normalize(X):
-    """
-    transforms to the simplex
-    X should be of a pd.DataFrame of form (p,N)
-    """
-    return X / X.sum(axis=0)
-
-
-def log_transform(X):
-    """
-    log transform, scaled with geometric mean
-    X should be a pd.DataFrame of form (p,N)
-    """
-    g = X.apply(geometric_mean)
-    Z = np.log(X / g)
-    return Z
-
-
 def transform_features(
-        features: pd.DataFrame, transformation: Str = "clr", pseudocount: float = 0.5
+    features: pd.DataFrame, transformation: Str = "clr", coef: float = 0.5
 ) -> pd.DataFrame:
     if transformation == "clr":
-        X = zero_replacement(features, c=pseudocount)
-        X = log_transform(X)
+        X = features.values
+        null_set = X <= 0.0 # just ignore zero replacement for the sake of experiment
+        X[null_set] = coef
+        X = np.log(X)
+        X = (X.T - np.mean(X, axis=1)).T
+        # X = (X - np.mean(X, axis=0)) if X is (p,n)
 
         return pd.DataFrame(
             data=X, index=list(features.index), columns=list(features.columns)
