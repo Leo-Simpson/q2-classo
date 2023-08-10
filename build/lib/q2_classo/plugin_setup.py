@@ -35,8 +35,11 @@ import pandas as pd
 
 import sys, os
 from os.path import join, dirname
-q2_classo_dir = dirname(os.getcwd())
+# q2_classo_dir = dirname(os.getcwd())
+q2_classo_dir = dirname('/opt/project/')
 sys.path.append(q2_classo_dir)
+#print(sys.path)
+#sys.path.remove('/opt/project/q2-classo')
 import q2_classo as q2c
 
 version = qiime2.__version__
@@ -132,7 +135,7 @@ plugin.methods.register_function(
             "transformation we will use "
         ),
         "coef": (
-            "Value that should be put instead of zeros"
+            "Pseudocount that should be put instead of zeros"
             " in the feature table. Default value is 0.5"
         ),
     },
@@ -188,7 +191,7 @@ plugin.methods.register_function(
     outputs=[
         ("new_features", FeatureTable[Design]),
         ("new_c", ConstraintMatrix),
-        ("new_w",Weights)
+        ("new_w", Weights)
     ],
     input_descriptions={
         "features": "Matrix representing the data of the problem",
