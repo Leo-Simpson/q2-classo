@@ -85,26 +85,8 @@ def generate_data(
     return dfx, C
 
 
-# def transform_features(
-#     features: pd.DataFrame, transformation: Str = "clr", coef: float = 0.5
-# ) -> pd.DataFrame:
-#     if transformation == "clr":
-#         X = features.values
-#         null_set = X <= 0.0
-#         X[null_set] = coef
-#         X = np.log(X)
-#         X = (X.T - np.mean(X, axis=1)).T
-#
-#         return pd.DataFrame(
-#             data=X, index=list(features.index), columns=list(features.columns)
-#         )
-#
-#     else:
-#         raise ValueError(
-#             "Unknown transformation name, use clr and not %r" % transformation
-#         )
 def transform_features(
-    features: pd.DataFrame, transformation: str = "clr", coef: float = 0.5
+    features: pd.DataFrame, transformation: Str = "clr", coef: float = 0.5
 ) -> pd.DataFrame:
     if transformation == "clr":
         X = features.values
