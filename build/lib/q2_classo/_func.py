@@ -86,18 +86,19 @@ def generate_data(
 
 
 def transform_features(
-    features: pd.DataFrame, transformation: Str = "clr", coef: float = 0.5
+    features: pd.DataFrame, transformation: str = "clr", coef: float = 0.5
 ) -> pd.DataFrame:
     if transformation == "clr":
         X = features.values
-        null_set = X <= 0.0 # just ignore zero replacement for the sake of experiment
+        null_set = X <= 0.0# just ignore zero replacement for the sake of experiment
         X[null_set] = coef
         X = np.log(X)
         X = (X.T - np.mean(X, axis=1)).T
         # X = (X - np.mean(X, axis=0)) if X is (p,n)
 
         return pd.DataFrame(
-            data=X, index=list(features.index), columns=list(features.columns)
+            data=X, index=list(features.index.astype(str)), 
+            columns=list(features.columns.astype(str))
         )
 
     else:
