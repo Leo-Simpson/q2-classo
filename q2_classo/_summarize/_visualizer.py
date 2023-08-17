@@ -552,7 +552,7 @@ def plot_cv(lam, accuracy, index_1SE, index_min, SE, directory, name, logscale=T
     jmax = len(lam) - 1
     while accuracy[jmax] > 100 * accuracy[index_min]:
         jmax -= 1
-    while jmin < index_1SE - 30 and accuracy[j] > mse_max:
+    while jmin < index_1SE - 30 and accuracy[jmin] > mse_max:
         jmin += 1
 
     
