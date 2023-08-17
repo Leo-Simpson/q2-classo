@@ -2,23 +2,6 @@ import numpy as np
 import zarr
 from classo import *
 
-from qiime2.plugin import (
-    SemanticType,
-    Plugin,
-    Int,
-    Float,
-    Range,
-    Metadata,
-    Str,
-    Bool,
-    Choices,
-    MetadataColumn,
-    Categorical,
-    List,
-    Citations,
-    TypeMatch,
-    Numeric,
-)
 from q2_types.feature_table import FeatureTable, Composition
 from q2_types.feature_data import FeatureData
 import qiime2
@@ -97,7 +80,7 @@ def transform_features(
         # X = (X - np.mean(X, axis=0)) if X is (p,n)
 
         return pd.DataFrame(
-            data=X, index=list(features.index.astype(str)), 
+            data=X, index=list(features.index.astype(str)),
             columns=list(features.columns.astype(str))
         )
 
