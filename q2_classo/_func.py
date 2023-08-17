@@ -86,7 +86,7 @@ def generate_data(
 
 
 def transform_features(
-    features: pd.DataFrame, transformation: str = "clr", coef: float = 0.5
+    features: pd.DataFrame, transformation: Str = "clr", coef: float = 0.5
 ) -> pd.DataFrame:
     if transformation == "clr":
         X = features.values
