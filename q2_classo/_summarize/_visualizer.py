@@ -8,19 +8,26 @@ import shutil
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from plotly import graph_objects, express, offline
+import plotly.io as pio
 import skbio
-
 from time import time
 from math import ceil
-
-
 from .._tree import make_lists_tree, plot_tree
+
+pio.templates.default = "plotly"  # Choose the appropriate default template
+pio.templates[pio.templates.default].layout.update(plot_bgcolor='white')
+custom_palette = ["#68025e", "#f74e6b", "#026e68", "#02688e", "#8e8602", "#8e0202"]
+#purple, pink, green, blue, yellow, red
+
+custom_template = pio.templates[pio.templates.default]
+custom_template.layout.colorway = custom_palette
+pio.templates["custom_template"] = custom_template
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 assets = os.path.join(dir_path, "assets")
 dir_form = os.path.join(dir_path, "form")
 
-colors = {"threshold": "red", "selected": "green", "unselected": "blue"}
+colors = {"threshold": "#8e0202", "selected": "#f74e6b", "unselected": "#68025e"}
 
 
 def summarize(
@@ -641,6 +648,7 @@ def plot_stability(
         },
     )
     fig.update_layout(
+        plot_bgcolor='white',
         shapes=[
             dict(
                 type="line",
@@ -687,6 +695,7 @@ def plot_stability_path(
         },
     )
     fig.update_layout(
+        plot_bgcolor='white',
         title="Stability selection profile across lambda-path with method "
         + method,
         shapes=[
@@ -720,7 +729,7 @@ def plot_predict(yhat, y, train_labels, directory, name, title):
         )
     )
 
-    fig.update_layout(title=title)
+    fig.update_layout(title=title, plot_bgcolor='white')
     offline.plot(fig, filename=os.path.join(directory, name), auto_open=False)
 
 
