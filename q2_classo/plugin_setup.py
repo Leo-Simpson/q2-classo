@@ -122,7 +122,7 @@ plugin.methods.register_function(
     function=q2c.transform_features,
     inputs={"features": FeatureTable[Composition | Frequency | Design]},
     parameters={"transformation": Str, "coef": Float},
-    outputs=[("x", FeatureTable[Design])],
+    outputs=[("x", FeatureTable[Composition | Design])],
     input_descriptions={
         "features": (
             "Matrix representing the compositional "
