@@ -122,7 +122,7 @@ plugin.methods.register_function(
     function=q2c.transform_features,
     inputs={"features": FeatureTable[Composition | Frequency | Design]},
     parameters={"transformation": Str, "coef": Float},
-    outputs=[("x", FeatureTable[Design])],
+    outputs=[("x", FeatureTable[Composition])],
     input_descriptions={
         "features": (
             "Matrix representing the compositional "
@@ -154,12 +154,12 @@ plugin.methods.register_function(
 plugin.methods.register_function(
     function=q2c.add_taxa,
     inputs={
-        "features": FeatureTable[Design],
+        "features": FeatureTable[Composition],
         "weights": Weights,
         "taxa": FeatureData[Taxonomy],
     },
     parameters={},
-    outputs=[("x", FeatureTable[Design]), ("aweights", Weights)],
+    outputs=[("x", FeatureTable[Composition]), ("aweights", Weights)],
     input_descriptions={
         "features": "Matrix representing the data of the problem",
         "weights": "Weights vector, default is the all one vector",
@@ -186,10 +186,10 @@ plugin.methods.register_function(
 # add_covariates
 plugin.methods.register_function(
     function=q2c.add_covariates,
-    inputs={"features": FeatureTable[Design], "c": ConstraintMatrix, "weights":Weights},
+    inputs={"features": FeatureTable[Composition], "c": ConstraintMatrix, "weights":Weights},
     parameters={"covariates": Metadata, "to_add": List[Str],"rescale":List[Bool], "w_to_add":List[Float]},
     outputs=[
-        ("new_features", FeatureTable[Design]),
+        ("new_features", FeatureTable[Composition]),
         ("new_c", ConstraintMatrix),
         ("new_w", Weights)
     ],
@@ -227,7 +227,7 @@ plugin.methods.register_function(
 plugin.methods.register_function(
     function=q2c.regress,
     inputs={
-        "features": FeatureTable[Design],
+        "features": FeatureTable[Composition],
         "c": ConstraintMatrix,
         "weights": Weights,
         # 'taxa': FeatureData[Taxonomy]
@@ -264,7 +264,7 @@ plugin.methods.register_function(
 plugin.methods.register_function(
     function=q2c.classify,
     inputs={
-        "features": FeatureTable[Design],
+        "features": FeatureTable[Composition],
         "c": ConstraintMatrix,
         "weights": Weights,
         # 'taxa': FeatureData[Taxonomy]
@@ -301,7 +301,7 @@ plugin.methods.register_function(
 # predict
 plugin.methods.register_function(
     function=q2c.predict,
-    inputs={"features": FeatureTable[Design], "problem": CLASSOProblem},
+    inputs={"features": FeatureTable[Composition], "problem": CLASSOProblem},
     parameters={},
     outputs=[("predictions", CLASSOProblem)],
     input_descriptions={
