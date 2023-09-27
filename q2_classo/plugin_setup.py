@@ -95,7 +95,7 @@ plugin.methods.register_function(
     function=q2c.generate_data,
     inputs={"taxa": FeatureData[Taxonomy]},
     parameters={"n": Int, "d": Int, "d_nonzero": Int, "classification": Bool},
-    outputs=[("x", FeatureTable[Composition]), ("c", ConstraintMatrix)],
+    outputs=[("x", FeatureTable[Design]), ("c", ConstraintMatrix)],
     input_descriptions={
         "taxa": "Taxonomy of the data. If it is given,"
         " it will generate random data associated to this"
@@ -118,11 +118,13 @@ plugin.methods.register_function(
 
 
 # features_clr
+# we sue Design instead of Composition tyoe because other plugins neglect compositionality
+# Design is somewhat compromise
 plugin.methods.register_function(
     function=q2c.transform_features,
     inputs={"features": FeatureTable[Composition | Frequency | Design]},
     parameters={"transformation": Str, "coef": Float},
-    outputs=[("x", FeatureTable[Composition])],
+    outputs=[("x", FeatureTable[Design])],
     input_descriptions={
         "features": (
             "Matrix representing the compositional "
@@ -154,12 +156,12 @@ plugin.methods.register_function(
 plugin.methods.register_function(
     function=q2c.add_taxa,
     inputs={
-        "features": FeatureTable[Composition],
+        "features": FeatureTable[Design],
         "weights": Weights,
         "taxa": FeatureData[Taxonomy],
     },
     parameters={},
-    outputs=[("x", FeatureTable[Composition]), ("aweights", Weights)],
+    outputs=[("x", FeatureTable[Design]), ("aweights", Weights)],
     input_descriptions={
         "features": "Matrix representing the data of the problem",
         "weights": "Weights vector, default is the all one vector",
@@ -186,10 +188,10 @@ plugin.methods.register_function(
 # add_covariates
 plugin.methods.register_function(
     function=q2c.add_covariates,
-    inputs={"features": FeatureTable[Composition], "c": ConstraintMatrix, "weights":Weights},
+    inputs={"features": FeatureTable[Design], "c": ConstraintMatrix, "weights":Weights},
     parameters={"covariates": Metadata, "to_add": List[Str],"rescale":List[Bool], "w_to_add":List[Float]},
     outputs=[
-        ("new_features", FeatureTable[Composition]),
+        ("new_features", FeatureTable[Design]),
         ("new_c", ConstraintMatrix),
         ("new_w", Weights)
     ],
@@ -227,7 +229,7 @@ plugin.methods.register_function(
 plugin.methods.register_function(
     function=q2c.regress,
     inputs={
-        "features": FeatureTable[Composition],
+        "features": FeatureTable[Design],
         "c": ConstraintMatrix,
         "weights": Weights,
         # 'taxa': FeatureData[Taxonomy]
@@ -264,7 +266,7 @@ plugin.methods.register_function(
 plugin.methods.register_function(
     function=q2c.classify,
     inputs={
-        "features": FeatureTable[Composition],
+        "features": FeatureTable[Design],
         "c": ConstraintMatrix,
         "weights": Weights,
         # 'taxa': FeatureData[Taxonomy]
@@ -301,7 +303,7 @@ plugin.methods.register_function(
 # predict
 plugin.methods.register_function(
     function=q2c.predict,
-    inputs={"features": FeatureTable[Composition], "problem": CLASSOProblem},
+    inputs={"features": FeatureTable[Design], "problem": CLASSOProblem},
     parameters={},
     outputs=[("predictions", CLASSOProblem)],
     input_descriptions={
