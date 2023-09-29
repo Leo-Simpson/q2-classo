@@ -521,6 +521,7 @@ def plot_path(BETAS, SIGMAS, LAMBDAS, directory, labels, name1, name2, logscale=
             fig2, filename=os.path.join(directory, name2), auto_open=False
         )
 
+import plotly.graph_objects as go
 
 def plot_beta(beta, directory, labels, name, title, max_number):
 
@@ -541,8 +542,9 @@ def plot_beta(beta, directory, labels, name, title, max_number):
         data, x="index", y="Coefficient i of beta", hover_data=["label"]
     )
     fig.update_layout(title=title)
+    # Configure the Plotly download button
+    offline.plot(fig, filename=os.path.join(directory, name), auto_open=False, image='svg')
 
-    offline.plot(fig, filename=os.path.join(directory, name), auto_open=False)
 
 
 def plot_cv(lam, accuracy, index_1SE, index_min, SE, directory, name, logscale=True, classification=False):
