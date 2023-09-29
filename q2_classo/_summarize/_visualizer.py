@@ -508,7 +508,7 @@ def plot_path(BETAS, SIGMAS, LAMBDAS, directory, labels, name1, name2, logscale=
             )
     fig.update_xaxes(title_text=textlam)
     fig.update_yaxes(title_text=r"Coefficients beta_i ")
-    offline.plot(fig, filename=os.path.join(directory, name1), auto_open=False)
+    offline.plot(fig, filename=os.path.join(directory, name1), auto_open=False, image='svg')
 
     if SIGMAS is not None:
         fig2 = graph_objects.Figure(
