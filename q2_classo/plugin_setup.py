@@ -156,7 +156,7 @@ plugin.methods.register_function(
 plugin.methods.register_function(
     function=q2c.add_taxa,
     inputs={
-        "features": FeatureTable[Design],
+        "features": FeatureTable[Design | Frequency],
         "weights": Weights,
         "taxa": FeatureData[Taxonomy],
     },
@@ -188,7 +188,7 @@ plugin.methods.register_function(
 # add_covariates
 plugin.methods.register_function(
     function=q2c.add_covariates,
-    inputs={"features": FeatureTable[Design], "c": ConstraintMatrix, "weights":Weights},
+    inputs={"features": FeatureTable[Design | Frequency], "c": ConstraintMatrix, "weights":Weights},
     parameters={"covariates": Metadata, "to_add": List[Str],"rescale":List[Bool], "w_to_add":List[Float]},
     outputs=[
         ("new_features", FeatureTable[Design]),
@@ -229,7 +229,7 @@ plugin.methods.register_function(
 plugin.methods.register_function(
     function=q2c.regress,
     inputs={
-        "features": FeatureTable[Design],
+        "features": FeatureTable[Design | Frequency],
         "c": ConstraintMatrix,
         "weights": Weights,
         # 'taxa': FeatureData[Taxonomy]
@@ -266,7 +266,7 @@ plugin.methods.register_function(
 plugin.methods.register_function(
     function=q2c.classify,
     inputs={
-        "features": FeatureTable[Design],
+        "features": FeatureTable[Design | Frequency],
         "c": ConstraintMatrix,
         "weights": Weights,
         # 'taxa': FeatureData[Taxonomy]
@@ -303,7 +303,7 @@ plugin.methods.register_function(
 # predict
 plugin.methods.register_function(
     function=q2c.predict,
-    inputs={"features": FeatureTable[Design], "problem": CLASSOProblem},
+    inputs={"features": FeatureTable[Design | Frequency], "problem": CLASSOProblem},
     parameters={},
     outputs=[("predictions", CLASSOProblem)],
     input_descriptions={
